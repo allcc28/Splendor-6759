@@ -79,6 +79,7 @@ class SplendorEnv(Env):
         :return: observation, reward, is_done, info
         """
         """Performs one action on the current current_state of the game. """
+        observation_to_show = self.current_state_of_the_game
         info = {}
         if action is not None:
             if ensure_correctness:
