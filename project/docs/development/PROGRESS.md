@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 8 In Progress — Experiment 1: Greedy Opponent Training 🏃
+**Current Phase**: Phase 8 Complete — Experiment 1: Greedy Opponent (NEGATIVE RESULT) ❌
 
 ---
 
@@ -259,15 +259,20 @@
 
 ---
 
-## 🏃 Phase 8: Experiment 1 — Greedy Opponent Training (In Progress)
+## ❌ Phase 8: Experiment 1 — Greedy Opponent Training (COMPLETE — NEGATIVE RESULT)
 
-**Start Date**: 2026-02-25  
-**Status**: 🏃 Training in progress  
-**Session**: 6
+**Date**: 2026-02-25 to 2026-02-26  
+**Status**: ❌ Hypothesis REJECTED  
+**Session**: 6-7  
+**Report**: `project/experiments/reports/ppo_v2_greedy_opponent_report.md`
 
 ### Hypothesis
 Training PPO with a stronger (Greedy) opponent — identical hyperparams and reward to v1 — yields
 a policy that beats v1 in head-to-head play, proving that opponent strength matters for PPO training.
+
+### Result: **HYPOTHESIS REJECTED**
+V2 performed dramatically worse than V1 in all matchups. Training against a Greedy opponent without
+Action Masking causes the agent to learn passive, avoidance behavior instead of winning strategies.
 
 ### Tasks
 - [x] Analyzed original fork codebase: found `StateEvaluatorHeuristic` (5-weight formula), `alpaca` MCTS framework
@@ -275,25 +280,40 @@ a policy that beats v1 in head-to-head play, proving that opponent strength matt
 - [x] Created v2 training script: `project/scripts/train_score_based_v2.py`
 - [x] Created dev log: `dev_logs/2026-02-25_session6_greedy_opp_experiment.md`
 - [x] Launched training: tmux session `train_v2`
-- [ ] Monitor training curves (TensorBoard)
-- [ ] Create `evaluate_v1_vs_v2.py` head-to-head script
-- [ ] Run 100-game v1 vs v2 tournament
-- [ ] Document results in `experiments/reports/experiment1_greedy_opp_training.md`
+- [x] Training complete: 1M steps, final reward -3.90 (never sustained positive)
+- [x] Evaluated v2 vs all opponents (100 games each)
+- [x] Generated TensorBoard plots and comparison charts
+- [x] Documented results in report
 
-### Experiment Design (Controlled)
+### V2 Evaluation Results (100 games each, fallback mode)
 
-| Property | v1 (Baseline) | v2 (This run) |
-|----------|---------------|---------------|
-| Opponent | RandomAgent | **GreedyAgentBoost** |
-| Reward   | score_progress | score_progress |
-| Network  | [256, 256, 128] | [256, 256, 128] |
-| Steps    | 1,000,000 | 1,000,000 |
-| Seed     | 42 | 42 |
+| Opponent | V2 Win Rate | V1 Win Rate | V2 Agent Score | V1 Agent Score |
+|----------|-------------|-------------|----------------|----------------|
+| Random (wrapper) | **3.0%** | 51.0% | 1.9 ± 3.4 | 9.5 ± 7.6 |
+| RandomAgent | **3.0%** | 43.0% | 3.1 ± 4.2 | 9.0 ± 7.1 |
+| GreedyAgent | **7.0%** | 53.0% | 2.8 ± 4.7 | 10.1 ± 7.6 |
+| Random (strict) | **2.0%** | 31.0% | 1.5 ± 3.2 | 5.2 ± 7.6 |
 
-### Success Criteria
-- v2 wins > 55% vs v1 in direct head-to-head  
-- v2 avg VP score ≥ v1 against GreedyAgent (fallback)  
-- Training converges: `ep_rew_mean > 0` by 500K steps  
+### Key Training Metrics Comparison
+
+| Metric | V1 | V2 |
+|--------|----|----|
+| Final Reward | +27.99 | -3.90 |
+| Peak Reward | +38.43 | +6.62 |
+| Explained Variance | 0.541 | **-0.167** |
+| Clip Fraction | 0.111 | **0.346** |
+| Invalid Actions/Game | ~10+ | **0.03-0.11** |
+
+### Key Insight
+V2's one "success" — near-zero invalid actions — came at the cost of strategic capability.
+The agent learned to pick safe (always-legal) actions like gem collection, but never learned
+to buy cards or pursue victory points. **Action Masking is prerequisite before training
+against harder opponents.**
+
+### Success Criteria (All FAILED)
+- ❌ v2 wins > 55% vs v1 → v2 wins 3-7% against all opponents
+- ❌ v2 avg VP ≥ v1 against GreedyAgent → v2: 2.8 vs v1: 10.1
+- ❌ Training converges: `ep_rew_mean > 0` by 500K → Never sustained positive
 
 ---
 
@@ -340,8 +360,24 @@ project/docs/development/
 ```
 project/experiments/evaluation/
 ├── ppo_score_based_eval_v2/     (partial — before opponent fix)
-└── ppo_score_based_eval_v3/     (FINAL results)
-    └── eval_v3_20260225_*.json
+├── ppo_score_based_eval_v3/     (FINAL v1 results)
+│   └── eval_v3_20260225_*.json
+└── ppo_score_based_v2_eval/     (v2 Greedy Opponent results)
+    └── eval_v3_20260226_083927.json
+```
+
+### Experiment Reports
+```
+project/experiments/reports/
+├── ppo_score_based_training_report.md        (v1 Phase 1 report)
+├── ppo_v2_greedy_opponent_report.md          (v2 Experiment 1 report — NEGATIVE RESULT)
+├── figures/                                   (v1 training plots)
+│   ├── episode_reward_mean.png
+│   └── episode_length_mean.png
+└── v2_figures/                                (v2 training plots)
+    ├── v2_episode_reward_mean.png
+    ├── v2_episode_length_mean.png
+    └── v1_vs_v2_training_comparison.png
 ```
 
 ---
@@ -384,8 +420,11 @@ project/experiments/evaluation/
 8. **Low scores (0-2 pts) in Splendor = agent not playing real game** — legitimate games reach 15+ points
 9. **Legacy agent API: `choose_action()` not `choose_act()`** — `choose_action()` loads the observation into the agent's private env, `choose_act()` assumes it's already loaded
 10. **Action masking is critical** — without it, Discrete(200) lets the model pick indices that exceed the number of legal actions
+11. **Don't train against too-strong opponents without Action Masking** — the agent learns avoidance behavior (picking safe but useless actions) instead of winning strategies
+12. **Negative explained variance = failed training** — V2's -0.167 means the value network is worse than a constant predictor
+13. **Clip fraction > 0.3 is a warning sign** — V2's 0.346 suggests the learning rate is too aggressive for the problem difficulty
 
 ---
 
-**Last Updated**: 2026-02-25 (Session 6 — Experiment 1: Greedy Opponent Training)  
-**Next Steps**: Evaluate v1 vs v2; if v2 wins, use as new baseline for Phase 2 (MaskablePPO + Event-based Rewards)
+**Last Updated**: 2026-02-26 (Session 7 — Experiment 1 Evaluation Complete)  
+**Next Steps**: Implement MaskablePPO with Action Masking (Phase 2 priority). V1 remains the baseline.
