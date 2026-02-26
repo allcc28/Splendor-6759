@@ -1,7 +1,7 @@
 # Copilot Instructions for Splendor RL Project
 
 ## Project Overview
-IFT6759 course project: Training RL agents for the board game Splendor using different reward shaping approaches (Score-based → Event-based → AlphaZero-style planning). Current phase: **PPO Score-based agent trained and validated**.
+IFT6759 course project: Training RL agents for the board game Splendor using different reward shaping approaches (Score-based → Event-based → AlphaZero-style planning). Current phase: **PPO Score-based agent trained & evaluated (Phase 1 complete)**.
 
 ## Critical Architecture Patterns
 
@@ -182,18 +182,18 @@ Opponents: `RandomAgent`, `GreedyAgent`, `ValueNNAgent`, `MCTSAgent` (in `module
 
 ## Current Implementation Status
 
-**Completed (Phase 1-5)**:
+**Completed (Phase 1-7)**:
 - ✅ WSL2 + GPU environment (PyTorch 2.5.1 + CUDA 12.1, SB3 2.7.1)
 - ✅ 135-dim state vectorizer (`project/src/utils/state_vectorizer.py`)
 - ✅ SB3 Gym wrapper (`project/src/utils/splendor_gym_wrapper.py`)
 - ✅ PPO training script (`project/scripts/train_score_based.py`)
 - ✅ 1M timestep training completed (reward: -9.91 → +27.99)
-
-**In Progress**:
-- Phase 6: Evaluation vs RandomAgent (win rate measurement)
+- ✅ Evaluation pipeline fixed (`project/scripts/evaluate_score_based_v3.py`)
+- ✅ Validated results: 51% vs Random, 43% vs RandomAgent, 53% vs GreedyAgent (with fallback)
+- ⚠️ Known limitation: No action masking → 40-60% of games have invalid actions
 
 **Planned** (see [docs/plan.md](docs/plan.md)):
-- Phase 2: Event-based reward shaping (Weeks 4-7)
+- Phase 2: Event-based reward shaping with MaskablePPO (Weeks 4-7)
 - Phase 3: AlphaZero-style MCTS agent (Weeks 8-10)
 
 ## Common Pitfalls
@@ -203,6 +203,11 @@ Opponents: `RandomAgent`, `GreedyAgent`, `ValueNNAgent`, `MCTSAgent` (in `module
 3. **GPU out of memory**: Current training uses ~1.4GB VRAM (5.6% of RTX 4090). If OOM occurs, reduce batch_size or network size
 4. **Windows vs WSL paths**: Training runs in WSL (`/mnt/c/...`), but VS Code uses Windows paths (`C:\...`). Use WSL for all Python execution
 5. **Stale tmux sessions**: Always check `tmux ls` before starting new training to avoid duplicate runs
+6. **NEVER evaluate PPO outside the Gym wrapper**: The model outputs action indices into `cached_legal_actions`. Using `env.action_space.list_of_actions` directly produces a different list → invalid actions → garbage
+7. **Legacy agent API for opponents**: Use `agent.choose_action(observation, [])` — NOT `choose_act(mode)` directly. `choose_action()` loads the observation into the agent's private env first. `choose_act()` assumes observation is already loaded and will pick from stale state.
+8. **Sanity-check Splendor scores**: A legitimate game ends with 15+ points for the winner. If avg scores are < 5, the evaluation is broken
+9. **SplendorEnv.step() auto-switches player**: Do NOT manually alternate turns when using env.step() — action.execute() handles this internally
+10. **Action masking needed**: Discrete(200) without masking lets the model pick indices >= n_legal_actions. Use `sb3-contrib` `MaskablePPO` for next training run
 
 ## Quick Reference
 

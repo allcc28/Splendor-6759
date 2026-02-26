@@ -229,7 +229,18 @@ class SplendorGymWrapper(gym.Env):
         return self.action_mask.copy()
     
     def _opponent_move(self):
-        """Execute opponent's move."""
+        """Execute opponent's move.
+        
+        For opponent_agent=None: sample uniformly from legal actions (fast random).
+        For opponent_agent objects: use the full choose_action() API which:
+          1. Creates a DeterministicObservation from the current game state
+          2. Loads it into the agent's private env
+          3. Updates legal actions in the agent's private env
+          4. Calls choose_act() which picks from the correct action list
+        
+        IMPORTANT: Do NOT call choose_act() directly — that bypasses observation
+        loading, so the agent would pick from its private env's stale state.
+        """
         if self.opponent_agent is None:
             # Random opponent - update actions and sample
             self.env.update_actions_light()
@@ -238,10 +249,11 @@ class SplendorGymWrapper(gym.Env):
                 action = np.random.choice(legal_actions)
                 self.env.step('deterministic', action)
         else:
-            # Use opponent agent
-            observation_obj = self.env.current_state_of_the_game
-            action = self.opponent_agent.choose_action(observation_obj)
-            self.env.step('deterministic', action)
+            # Get observation from current game state and pass through proper API
+            observation = self.env.show_observation('deterministic')
+            action = self.opponent_agent.choose_action(observation, [])
+            if action is not None:
+                self.env.step('deterministic', action)
     
     def _compute_reward(self, score_diff: int, won: bool, lost: bool) -> float:
         """

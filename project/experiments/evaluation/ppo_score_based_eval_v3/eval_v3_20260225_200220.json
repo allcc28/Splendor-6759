@@ -1,0 +1,170 @@
+{
+  "vs_random_wrapper": {
+    "total_games": 100,
+    "wins": 51,
+    "losses": 26,
+    "draws": 23,
+    "win_rate": 51.0,
+    "loss_rate": 26.0,
+    "agent_scores": {
+      "mean": 9.54,
+      "std": 7.62026246267148,
+      "min": 0,
+      "max": 21,
+      "median": 15.0
+    },
+    "opponent_scores": {
+      "mean": 6.5,
+      "std": 7.05620294492725,
+      "min": 0,
+      "max": 22,
+      "median": 3.0
+    },
+    "game_lengths": {
+      "mean": 35.28,
+      "std": 15.693361653896847,
+      "min": 4,
+      "max": 63
+    },
+    "rewards": {
+      "mean": 32.7502,
+      "std": 35.25600147435894
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.78,
+      "total": 78,
+      "games_with_invalid": 40
+    },
+    "fallbacks": {
+      "mean_per_game": 0.78,
+      "total": 78
+    },
+    "zero_actions_episodes": 23
+  },
+  "vs_random_agent": {
+    "total_games": 100,
+    "wins": 43,
+    "losses": 37,
+    "draws": 20,
+    "win_rate": 43.0,
+    "loss_rate": 37.0,
+    "agent_scores": {
+      "mean": 8.99,
+      "std": 7.0844830439489375,
+      "min": 0,
+      "max": 20,
+      "median": 9.0
+    },
+    "opponent_scores": {
+      "mean": 10.02,
+      "std": 6.560457301133817,
+      "min": 0,
+      "max": 21,
+      "median": 11.5
+    },
+    "game_lengths": {
+      "mean": 36.21,
+      "std": 11.927526985926296,
+      "min": 4,
+      "max": 54
+    },
+    "rewards": {
+      "mean": 28.438399999999998,
+      "std": 33.67106403783521
+    },
+    "invalid_actions": {
+      "mean_per_game": 1.21,
+      "total": 121,
+      "games_with_invalid": 61
+    },
+    "fallbacks": {
+      "mean_per_game": 1.21,
+      "total": 121
+    },
+    "zero_actions_episodes": 20
+  },
+  "vs_greedy": {
+    "total_games": 100,
+    "wins": 53,
+    "losses": 30,
+    "draws": 17,
+    "win_rate": 53.0,
+    "loss_rate": 30.0,
+    "agent_scores": {
+      "mean": 10.1,
+      "std": 7.609862022402246,
+      "min": 0,
+      "max": 22,
+      "median": 15.0
+    },
+    "opponent_scores": {
+      "mean": 6.98,
+      "std": 7.173534693580286,
+      "min": 0,
+      "max": 19,
+      "median": 4.0
+    },
+    "game_lengths": {
+      "mean": 36.72,
+      "std": 13.57061531397895,
+      "min": 4,
+      "max": 65
+    },
+    "rewards": {
+      "mean": 34.9342,
+      "std": 34.539519110143964
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.93,
+      "total": 93,
+      "games_with_invalid": 43
+    },
+    "fallbacks": {
+      "mean_per_game": 0.93,
+      "total": 93
+    },
+    "zero_actions_episodes": 17
+  },
+  "vs_random_strict": {
+    "total_games": 100,
+    "wins": 31,
+    "losses": 9,
+    "draws": 60,
+    "win_rate": 31.0,
+    "loss_rate": 9.0,
+    "agent_scores": {
+      "mean": 5.22,
+      "std": 7.613908326214599,
+      "min": 0,
+      "max": 24,
+      "median": 0.0
+    },
+    "opponent_scores": {
+      "mean": 2.16,
+      "std": 4.853287545571558,
+      "min": 0,
+      "max": 20,
+      "median": 0.0
+    },
+    "game_lengths": {
+      "mean": 26.67,
+      "std": 14.971342625162249,
+      "min": 2,
+      "max": 56
+    },
+    "rewards": {
+      "mean": 15.585799999999997,
+      "std": 34.49794916165307
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.44,
+      "total": 44,
+      "games_with_invalid": 44
+    },
+    "fallbacks": {
+      "mean_per_game": 0.0,
+      "total": 0
+    },
+    "zero_actions_episodes": 16
+  }
+}
