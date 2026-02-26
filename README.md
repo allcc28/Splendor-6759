@@ -1,27 +1,79 @@
-Forked from TomaszOdrzygozdz/gym-splendor
+# Splendor RL: Reward Shaping & Advanced Planning
 
-## 快速定位（现在的顶层只保留开发与文档）
-- `project/` — 你正在开发的新流水线（agents、reward shaping、AlphaZero、训练/评测脚本）。
-- `docs/` — 计划、可行性报告、速度分析、提案等所有文档。
-- `modules/` — 供新项目复用的原始环境与基线代码（已通过 `sitecustomize.py` 自动加入 `PYTHONPATH`）。
-- `legacy/` — 老的实验脚本、数据、日志与备份，已整体打包收纳；除非回溯旧结果，否则不用关注。
-- `setup.py` / `check_env.py` — 环境安装与快速检查入口。
+This repository is dedicated to the development and training of Reinforcement Learning agents for the board game **Splendor**. This project is a part of the IFT6759 course.
 
-## 目录详情
-### 开发主线（project/）
-遵循 `project/README.md` 中的 Phase 划分：
-- `project/src/agents`: `score_based`、`event_based`、`alphazero` 等策略实现。
-- `project/src/reward`: 奖励塑形逻辑。
-- `project/src/mcts` & `project/src/nn`: AlphaZero 的搜索与模型。
-- `project/configs`: 所有实验/训练配置。
-- `project/scripts`: 训练、评测、锦标赛入口脚本。
-- `project/experiments`: 按阶段归档的实验运行与产出。
+## 🚀 Project Overview
+The objective is to study the impact of reward shaping (Score-based vs. Event-based) and advanced planning algorithms (AlphaZero-style MCTS) on agent performance in a complex, multi-modal strategy game.
 
-### 文档（docs/）
-- `plan.md` — 10 周执行计划。
-- `Splendor_Feasibility_Report.md` — 可行性分析。
-- `Evidence_Inference_Speed.md` — 推理/效率记录。
-- 其他 PDF / DOCX 提案与概览。
+### Latest Milestone: Phase 1 & 8 Complete
+- ✅ **Phase 1 Baseline**: Successfully trained a PPO agent with simple score-based rewards against Random opponents.
+- ❌ **Experiment 1 (v2) Insight**: Training against Greedy opponents without Action Masking led to "passive avoidance" behavior. 
+- 🛠️ **Current Status**: Pivoting to **MaskablePPO** (using `sb3-contrib`) to handle the large discrete action space (200 actions) by masking illegal moves.
 
-### 遗留资源（legacy/）
-包含历史数据、模型、旧脚本与日志（`artifacts/`、`data/`、`examples/`、`outputs/` 等）。需要时可从此目录取用，不再干扰主工作区。
+## 📂 Repository Structure
+
+### 🛠️ Core Development (`project/`)
+- `project/src/utils/`: SB3 Gym Wrapper, State Vectorizer (135-dim), and utilities.
+- `project/configs/`: YAML configurations for training (PPO, Masking, etc.).
+- `project/scripts/`: Pipelines for training, evaluation, and plotting.
+- `project/experiments/`: Reports, evaluation results, and training figures.
+- `project/logs/`: TensorBoard logs and model checkpoints.
+- `project/docs/development/`: Progress trackers, ADRs, and session logs.
+
+### 📚 Documentation (`docs/`)
+- `plan.md`: The 10-week execution roadmap.
+- `Splendor_Feasibility_Report.md`: Technical feasibility study.
+- `Evidence_Inference_Speed.md`: Performance profiling and inference speed analysis.
+
+### 🏗️ Game Modules (`modules/`)
+- `gym_splendor_code/`: The core Splendor environment logic.
+- `agents/`: Legacy agents (Greedy, Random, MCTS) used as training opponents.
+- `arena/`: Multi-agent match execution framework.
+
+### 📦 Legacy Resources (`legacy/`)
+- Archived scripts, data, and historical experiments.
+
+## ⚙️ Environment Setup
+
+### Prerequisites
+- **OS**: WSL2 (Ubuntu 22.04 recommended)
+- **GPU**: NVIDIA RTX 4090 (or similar) with CUDA 12.1+
+- **Python**: 3.10.x (Miniconda recommended)
+
+### Installation
+1. Clone the repository.
+2. Initialize the environment:
+```bash
+conda activate splendor
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install stable-baselines3[extra] gymnasium pyyaml tensorboard pytest
+pip install sb3-contrib  # Required for MaskablePPO
+```
+
+## 🎮 How to Use
+
+### Training
+To train the baseline Score-based agent:
+```bash
+python project/scripts/train_score_based.py
+```
+
+### Evaluation
+To evaluate a trained model against different opponents:
+```bash
+python project/scripts/evaluate_score_based_v3.py --model path/to/model.zip --games 100
+```
+
+### Monitoring
+Launch TensorBoard from within WSL:
+```bash
+tensorboard --logdir project/logs --port 6006
+```
+
+## 📜 Key Research Themes
+1. **Reward Shaping**: Comparing sparse score rewards with dense event-based signals.
+2. **Action Masking**: Utilizing `MaskablePPO` to optimize learning in a high-branching-factor environment.
+3. **Hybrid Planning**: Integrating Neural Network value/policy priors with Monte Carlo Tree Search (AlphaZero style).
+
+---
+*Developed for IFT6759 - Winter 2026*
