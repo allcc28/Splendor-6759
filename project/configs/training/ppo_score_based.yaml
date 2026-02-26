@@ -1,0 +1,88 @@
+# PPO Training Configuration for Score-based Splendor Agent
+# 
+# This configuration is designed for initial training runs.
+# Adjust hyperparameters based on TensorBoard observations.
+
+# Environment settings
+environment:
+  name: "SplendorScoreBased"
+  reward_mode: "score_progress"  # Options: score_naive, score_win_bonus, score_progress
+  max_turns: 120
+  opponent: "random"  # Options: random, greedy, mcts
+  
+# PPO Hyperparameters (based on Stable-Baselines3 defaults, tuned for Splendor)
+ppo:
+  # Learning schedule
+  learning_rate: 0.0003
+  lr_schedule: "constant"  # Options: constant, linear
+  
+  # Training steps
+  n_steps: 2048  # Number of steps per environment per update
+  batch_size: 64  # Minibatch size
+  n_epochs: 10  # Number of epochs when optimizing the surrogate loss
+  
+  # Discount and advantage estimation
+  gamma: 0.99  # Discount factor
+  gae_lambda: 0.95  # GAE lambda parameter
+  
+  # PPO clipping
+  clip_range: 0.2  # Clipping parameter
+  clip_range_vf: null  # Clipping for value function (null = no clipping)
+  
+  # Normalization
+  normalize_advantage: true
+  
+  # Policy/Value network parameters
+  ent_coef: 0.01  # Entropy coefficient (encourage exploration)
+  vf_coef: 0.5  # Value function coefficient
+  max_grad_norm: 0.5  # Gradient clipping
+  
+  # Network architecture
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256  # First hidden layer
+      - 256  # Second hidden layer
+      - 128  # Third hidden layer
+    activation_fn: "relu"  # Activation function
+    
+# Training settings
+training:
+  total_timesteps: 1000000  # 1M steps (~500-1000 episodes)
+  eval_freq: 10000  # Evaluate every N steps
+  eval_episodes: 10  # Number of episodes per evaluation
+  save_freq: 50000  # Save model every N steps
+  
+  # Logging
+  log_interval: 10  # Log every N updates
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1  # 0: no output, 1: info, 2: debug
+  
+# Checkpointing
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "ppo_score_based"
+  save_replay_buffer: false
+  save_vecnormalize: false
+  
+# Evaluation settings
+evaluation:
+  deterministic: true  # Use deterministic policy for evaluation
+  render: false
+  callback_on_eval: false
+  
+# Experiment tracking
+experiment:
+  name: "ppo_score_based_v1"
+  tags:
+    - "ppo"
+    - "score_based"
+    - "phase1"
+  notes: "Initial training run with progress reward mode"
+  
+# Device settings
+device: "auto"  # Options: auto, cuda, cpu (auto will use GPU if available)
+
+# Reproducibility
+seed: 42
+deterministic_actions: false  # Use stochastic policy during training

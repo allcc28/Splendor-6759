@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Training artifacts
+*.log
+training.log
+training_new.log
+evaluation_log.txt
+nohup.out
+
+# Large model files (keep only final models)
+project/logs/ppo_score_based_v1_*/logs/checkpoints/ppo_score_based_*_steps.zip
+project/logs/ppo_quick_test_*/
+
+# Temporary test files (root level only)
+/test_*.py
+/test_*.sh
+/final_test_wsl.sh
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Temporary WSL setup files
+setup_wsl_env.sh
+WSL_QUICKSTART.md

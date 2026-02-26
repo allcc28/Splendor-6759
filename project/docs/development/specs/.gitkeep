@@ -1,0 +1,11 @@
+# Technical Specifications
+
+This folder contains detailed technical specs for major components.
+
+Examples:
+- Agent architectures
+- Neural network designs
+- MCTS implementations
+- Reward function specifications
+- State representation formats
+- Training pipeline architecture

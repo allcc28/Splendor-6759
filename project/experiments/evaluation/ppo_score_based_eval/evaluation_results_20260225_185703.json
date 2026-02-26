@@ -1,0 +1,40 @@
+{
+  "vs_random": {
+    "total_games": 100,
+    "ppo": {
+      "name": "PPO-ScoreBased",
+      "wins": 62,
+      "win_rate": 62.0,
+      "avg_points": 2.16,
+      "std_points": 3.58809141466602
+    },
+    "opponent": {
+      "name": "RandomAgent",
+      "wins": 38,
+      "win_rate": 38.0,
+      "avg_points": 4.44,
+      "std_points": 6.582279240506286
+    },
+    "avg_game_length": 129.02,
+    "std_game_length": 75.23389927419689
+  },
+  "vs_greedy": {
+    "total_games": 100,
+    "ppo": {
+      "name": "PPO-ScoreBased",
+      "wins": 60,
+      "win_rate": 60.0,
+      "avg_points": 1.76,
+      "std_points": 3.1784272840510295
+    },
+    "opponent": {
+      "name": "GreedyAgent-value",
+      "wins": 40,
+      "win_rate": 40.0,
+      "avg_points": 4.07,
+      "std_points": 5.92833028769484
+    },
+    "avg_game_length": 142.31,
+    "std_game_length": 72.10391043487171
+  }
+}
