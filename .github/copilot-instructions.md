@@ -76,7 +76,7 @@ python project/scripts/train_score_based.py
 #   └── config.yaml               # Training config snapshot
 ```
 
-**Monitoring**: `tensorboard --logdir project/logs`
+**Monitoring**: See TensorBoard section below.
 
 ## Development Workflows
 
@@ -98,6 +98,47 @@ nvidia-smi
 ```
 
 **Hardware**: RTX 4090 (24GB), Threadripper 5955WX (32 threads)
+
+### TensorBoard — How to Open
+
+**IMPORTANT**: TensorBoard must be run inside WSL (not Windows PowerShell). `conda activate splendor` in PowerShell does NOT make `tensorboard` available there.
+
+```bash
+# Step 1: Open a WSL terminal (separate from the training session)
+wsl
+
+# Step 2: Go to project root and activate environment
+cd /mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759
+conda activate splendor
+
+# Step 3: Launch TensorBoard (use relative path — faster than /mnt/c/... NTFS scan)
+tensorboard --logdir project/logs --load_fast=false --host 0.0.0.0 --port 6006
+
+# Step 4: Open in Windows browser
+#   → http://localhost:6006   (NOT http://0.0.0.0:6006)
+#   → Wait 10-15 seconds then hit the refresh button (top-right circular arrow)
+```
+
+**Common issues**:
+- Blank page → You opened `http://0.0.0.0:6006` instead of `http://localhost:6006`, or used a `/mnt/c/` absolute path (slow). Use `project/logs` relative path + `--load_fast=false`.
+- `tensorboard: command not found` in PowerShell → You must run inside WSL, not Windows.
+- Port 6006 busy → Add `--port 6007` (or any free port).
+
+**Monitoring training progress (separate terminal)**:
+```bash
+# Check latest log snapshot
+tail -30 project/logs/training_v2.log
+
+# Live follow (Ctrl+C to stop)
+tail -f project/logs/training_v2.log
+
+# Check if training session is alive
+tmux list-sessions
+
+# Enter training session (live output)
+tmux attach -t train_v2
+# Detach without killing: Ctrl+B, then D
+```
 
 ### Testing
 ```bash
