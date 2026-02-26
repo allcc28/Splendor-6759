@@ -2,11 +2,37 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 8 Complete — Experiment 1: Greedy Opponent (NEGATIVE RESULT) ❌
+**Current Phase**: Phase 9 - Architecture Pivot: Action Masking (`MaskablePPO`)
 
 ---
 
-## ✅ Completed Tasks (2026-02-24)
+## ✅ Completed Tasks (2026-02-24 to 2026-02-25)
+
+### Phase 8: Experiment 1 — Greedy Opponent (Negative Result) ✅
+- [x] **Task 8.1**: Create training script vs. GreedyAgentBoost
+  - File: `project/scripts/train_v2_greedy.py` (fixed `sys.path` for legacy agents)
+- [x] **Task 8.1**: Run 1M timestep training
+  - Result: Failed to learn scoring. Agent became "passive" (0 points, long survival) to avoid the -10 invalid action penalty.
+  - Metrics: Negative Explained Variance (-0.167).
+- [x] **Task 8.3**: Comparative Evaluation & Reporting
+  - Report: `project/experiments/reports/ppo_v2_greedy_opponent_report.md`
+  - Findings: Pure PPO cannot handle a 200-dim action space where >90% of actions are illegal against a strong opponent.
+
+---
+
+## 🏃 Current Work: Phase 9 — Architecture Pivot (Action Masking)
+
+### Task 9: Implement MaskablePPO
+- [ ] **Task 9.1**: Install `sb3-contrib` dependency for `MaskablePPO`
+- [ ] **Task 9.2**: Update `SplendorGymWrapper` to support `action_masks()`
+- [ ] **Task 9.3**: Implement `MaskablePPO` training script
+- [ ] **Task 9.4**: Validate masking prevents all illegal actions during training
+
+---
+
+## 📅 Upcoming: Phase 10 — Event-based Reward Shaping
+- [ ] **Task 10.1**: Define "Event" rewards (Card Tier, Noble proximity, Gem efficiency)
+- [ ] **Task 10.2**: Compare MaskablePPO (Score) vs MaskablePPO (Event)
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks

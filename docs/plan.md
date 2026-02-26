@@ -1,10 +1,11 @@
 # IFT6759 Course Project Plan: Optimizing Splendor AI Agents
 # 课程项目规划：基于璀璨宝石 (Splendor) 的奖励设计与规划算法研究
 
-> **Status:** Finalized Proposal
+> **Status:** Finalized Proposal | Phase 1 (Baselines) Complete | **Pivoting to Action Masking (Phase 2)**
 > **Team:** Yehao Yan, Qianyun Shen, Xinyan Guo
 > **Hardware:** AMD Ryzen Threadripper PRO 5955WX (16 Cores/32 Threads) + NVIDIA RTX 4090 (24GB VRAM)
 > **Core Theme:** Reward Shaping (Score vs. Event) -> Advanced Planning (AlphaZero)
+> **Key Pivot (2026-02-26):** Experiment 1 showed that standard PPO fails against strong opponents due to the large invalid action space. We are upgrading to **MaskablePPO** (from `sb3-contrib`) as the foundation for Phase 2.
 
 ---
 
