@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 7 Complete — Evaluation Fixed & Validated ✅
+**Current Phase**: Phase 8 In Progress — Experiment 1: Greedy Opponent Training 🏃
 
 ---
 
@@ -259,6 +259,44 @@
 
 ---
 
+## 🏃 Phase 8: Experiment 1 — Greedy Opponent Training (In Progress)
+
+**Start Date**: 2026-02-25  
+**Status**: 🏃 Training in progress  
+**Session**: 6
+
+### Hypothesis
+Training PPO with a stronger (Greedy) opponent — identical hyperparams and reward to v1 — yields
+a policy that beats v1 in head-to-head play, proving that opponent strength matters for PPO training.
+
+### Tasks
+- [x] Analyzed original fork codebase: found `StateEvaluatorHeuristic` (5-weight formula), `alpaca` MCTS framework
+- [x] Created v2 config: `project/configs/training/ppo_score_based_v2_greedy_opp.yaml`
+- [x] Created v2 training script: `project/scripts/train_score_based_v2.py`
+- [x] Created dev log: `dev_logs/2026-02-25_session6_greedy_opp_experiment.md`
+- [x] Launched training: tmux session `train_v2`
+- [ ] Monitor training curves (TensorBoard)
+- [ ] Create `evaluate_v1_vs_v2.py` head-to-head script
+- [ ] Run 100-game v1 vs v2 tournament
+- [ ] Document results in `experiments/reports/experiment1_greedy_opp_training.md`
+
+### Experiment Design (Controlled)
+
+| Property | v1 (Baseline) | v2 (This run) |
+|----------|---------------|---------------|
+| Opponent | RandomAgent | **GreedyAgentBoost** |
+| Reward   | score_progress | score_progress |
+| Network  | [256, 256, 128] | [256, 256, 128] |
+| Steps    | 1,000,000 | 1,000,000 |
+| Seed     | 42 | 42 |
+
+### Success Criteria
+- v2 wins > 55% vs v1 in direct head-to-head  
+- v2 avg VP score ≥ v1 against GreedyAgent (fallback)  
+- Training converges: `ep_rew_mean > 0` by 500K steps  
+
+---
+
 ## 📁 Artifacts
 
 ### Source Code
@@ -269,17 +307,21 @@ project/src/utils/
 └── __init__.py
 
 project/scripts/
-├── train_score_based.py         (220 lines)
+├── train_score_based.py         (220 lines — v1, random opponent)
+├── train_score_based_v2.py      (NEW — v2, greedy opponent)
 ├── evaluate_score_based.py      (DEPRECATED — buggy)
 ├── evaluate_score_based_v2.py   (266 lines — partial fix)
 ├── evaluate_score_based_v3.py   (276 lines — FINAL, with fallback mode)
+├── evaluate_v1_vs_v2.py         (PLANNED — head-to-head tournament)
+├── export_training_plots.py     (TensorBoard → PNG export)
 ├── debug_evaluation.py          (diagnostic tool)
 ├── debug_deep_diagnostic.py     (wrapper diagnostic)
 └── debug_zero_actions.py        (engine edge case diagnostic)
 
 project/configs/training/
-├── ppo_score_based.yaml         (Full 1M training)
-└── ppo_quick_test.yaml          (10k validation)
+├── ppo_score_based.yaml                   (v1 — Full 1M training, random opp)
+├── ppo_score_based_v2_greedy_opp.yaml     (v2 — Full 1M training, greedy opp)
+└── ppo_quick_test.yaml                    (10k validation)
 ```
 
 ### Documentation
@@ -290,7 +332,8 @@ project/docs/development/
 └── dev_logs/
     ├── 2026-02-24_session1_project_setup.md
     ├── 2026-02-25_session4_bug_discovery.md
-    └── 2026-02-25_session5_bug_fix_evaluation.md
+    ├── 2026-02-25_session5_bug_fix_evaluation.md
+    └── 2026-02-25_session6_greedy_opp_experiment.md  (NEW)
 ```
 
 ### Evaluation Results
@@ -344,5 +387,5 @@ project/experiments/evaluation/
 
 ---
 
-**Last Updated**: 2026-02-25 (Session 5 — Bug Fix & Evaluation)  
-**Next Steps**: Phase 2 — Event-based reward shaping with MaskablePPO
+**Last Updated**: 2026-02-25 (Session 6 — Experiment 1: Greedy Opponent Training)  
+**Next Steps**: Evaluate v1 vs v2; if v2 wins, use as new baseline for Phase 2 (MaskablePPO + Event-based Rewards)

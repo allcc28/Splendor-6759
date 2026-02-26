@@ -1,0 +1,87 @@
+# PPO v2 Training Config — Score-Based with Greedy Opponent
+#
+# Hypothesis: Training against a stronger (Greedy) opponent forces the agent
+# to learn more robust long-term strategies compared to a random opponent.
+# This run is the first controlled experiment in the project.
+#
+# Baseline:   ppo_score_based_v1 — trained vs RandomAgent
+# This run:   ppo_score_based_v2 — trained vs GreedyAgentBoost
+#
+# Evaluation plan: v2 vs v1 direct match to validate learning improvement.
+
+# Environment settings
+environment:
+  name: "SplendorScoreBased"
+  reward_mode: "score_progress"   # Same reward function as v1 for fair comparison
+  max_turns: 120
+  opponent: "greedy"              # <-- KEY CHANGE vs v1 (was "random")
+
+# PPO Hyperparameters — identical to v1 for controlled experiment
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  clip_range: 0.2
+  clip_range_vf: null
+
+  normalize_advantage: true
+
+  ent_coef: 0.01
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+# Training settings — 1M steps for direct comparison with v1
+training:
+  total_timesteps: 1000000
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+# Checkpointing
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "ppo_score_based_v2"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+# Evaluation settings
+evaluation:
+  deterministic: true
+  render: false
+  callback_on_eval: false
+
+# Experiment metadata
+experiment:
+  name: "ppo_score_based_v2_greedy_opp"
+  tags:
+    - "ppo"
+    - "score_based"
+    - "greedy_opponent"
+    - "experiment_1"
+  notes: >
+    Controlled experiment: same reward and hyperparams as v1 but trains against
+    GreedyAgentBoost instead of random. Hypothesis: harder opponent forces more
+    structured strategy. Validate by pitting v2 directly against v1.
+
+device: "auto"
+seed: 42
+deterministic_actions: false
