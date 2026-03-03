@@ -1,0 +1,78 @@
+# MaskablePPO Training Configuration — Score-based Agent (v3)
+#
+# Phase 9: Architecture Pivot — Action Masking
+# Key change from v1/v2: Uses MaskablePPO (sb3-contrib) which physically
+# prevents the model from sampling illegal actions during training.
+# This eliminates the -10 penalty loop that plagued v1/v2 and allows
+# the policy network to focus entirely on strategic decision-making.
+
+# Environment settings
+environment:
+  name: "SplendorMaskableScoreBased"
+  reward_mode: "score_progress"  # score_diff + 0.01/step + 50*win
+  max_turns: 120
+  opponent: "random"
+
+# MaskablePPO Hyperparameters
+# Note: ent_coef lowered vs v1 (0.01 → 0.005) because action masking
+# already reduces the effective action space, so less entropy bonus
+# is needed to prevent premature convergence.
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  clip_range: 0.2
+  clip_range_vf: null
+
+  normalize_advantage: true
+
+  ent_coef: 0.005   # Reduced: masking shrinks effective action space
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+# Training settings
+training:
+  total_timesteps: 1000000
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+# Checkpointing
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_score"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+# Evaluation settings
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+# Experiment tracking
+experiment:
+  name: "maskable_ppo_score_v3"
+  tags:
+    - "maskable_ppo"
+    - "score_based"
+    - "action_masking"
+    - "phase9"

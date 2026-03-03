@@ -219,14 +219,27 @@ class SplendorGymWrapper(gym.Env):
         self.action_mask = np.zeros(self.action_space.n, dtype=bool)
         self.action_mask[:len(self.cached_legal_actions)] = True
     
+    def action_masks(self) -> np.ndarray:
+        """
+        Return action mask compatible with MaskablePPO (sb3-contrib).
+
+        This is the standard interface expected by MaskablePPO's
+        MaskableActorCriticPolicy. It is called automatically during
+        rollout collection and inference.
+
+        Returns:
+            np.ndarray: Boolean array of shape (200,) where True = legal action.
+        """
+        return self.action_mask.copy()
+
     def get_action_mask(self) -> np.ndarray:
         """
-        Get mask of legal actions.
-        
+        Alias for action_masks(). Kept for backward compatibility.
+
         Returns:
             np.ndarray: Boolean array where True = legal action
         """
-        return self.action_mask.copy()
+        return self.action_masks()
     
     def _opponent_move(self):
         """Execute opponent's move.
