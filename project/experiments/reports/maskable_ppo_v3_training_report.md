@@ -123,7 +123,7 @@ reward = 0.01                  # progress reward per valid step
        - 50 * loss             # loss penalty (terminal)
 ```
 
-When the opponent wins, an additional -1.0 penalty is applied. This reward design means a game where the agent wins with score X while the opponent accumulates no score yields approximately `0.01 × turns + 50` total reward — consistent with the ~66 values seen in V3's training curves.
+When the opponent wins after their move (detected inside `step()`), the reward for that step is recomputed via `_compute_reward(score_diff, won=False, lost=True)`. For `score_progress` mode this gives `score_diff + 0.01 − 50`, so a turn where the agent gained no points yields **−49.99** — the same scale as the explicit loss case handled in `_compute_reward`. (Earlier code hardcoded `−1.0` here, which contradicted the reward function; this was corrected in commit `247e2fd`.) This reward design means a game where the agent wins while the opponent accumulates no score yields approximately `0.01 × turns + 50` total reward — consistent with the ~66 values seen in V3's training curves.
 
 ---
 
