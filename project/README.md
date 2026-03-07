@@ -33,3 +33,36 @@ This folder organizes the work described in the project plan into clear phases a
 - Training entrypoints should live in `project/scripts/`.
 - Configs are versioned in `project/configs/` and referenced by scripts.
 - All generated artifacts go to `project/outputs/` and `project/logs/`.
+
+## Environment Setup (RL Pipeline)
+
+Recommended Python version: `3.10` (tested) or `3.11`.
+(`stable-baselines3` + CUDA stack may fail on newer interpreters like 3.13.)
+
+Install project dependencies from repo root:
+
+```bash
+python -m pip install -r project/requirements.txt
+```
+
+For development/testing:
+
+```bash
+python -m pip install -r project/requirements-dev.txt
+```
+
+Run tests:
+
+```bash
+pytest -q project/tests
+```
+
+## Canonical Entrypoints
+
+- Train PPO score-based baseline: `project/scripts/train_score_based.py`
+- Train MaskablePPO variant: `project/scripts/train_maskable_ppo.py`
+- Evaluate PPO (current canonical evaluator): `project/scripts/evaluate_score_based_v3.py`
+
+Deprecated evaluator:
+
+- `project/scripts/evaluate_score_based.py` (kept for history, do not use)

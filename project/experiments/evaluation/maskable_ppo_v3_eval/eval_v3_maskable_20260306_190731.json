@@ -1,0 +1,116 @@
+{
+  "vs_random_wrapper": {
+    "total_games": 100,
+    "wins": 95,
+    "losses": 0,
+    "draws": 5,
+    "win_rate": 95.0,
+    "loss_rate": 0.0,
+    "agent_scores": {
+      "mean": 15.44,
+      "std": 4.08,
+      "min": 0,
+      "max": 21,
+      "median": 16.0
+    },
+    "opponent_scores": {
+      "mean": 0.95,
+      "std": 1.7109938632268673,
+      "min": 0,
+      "max": 11
+    },
+    "game_lengths": {
+      "mean": 32.04,
+      "std": 6.60290845006956,
+      "min": 4,
+      "max": 42
+    },
+    "rewards": {
+      "mean": 62.7604,
+      "std": 15.81303917151918
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  },
+  "vs_random_agent": {
+    "total_games": 100,
+    "wins": 93,
+    "losses": 4,
+    "draws": 3,
+    "win_rate": 93.0,
+    "loss_rate": 4.0,
+    "agent_scores": {
+      "mean": 15.52,
+      "std": 3.5198863618020395,
+      "min": 0,
+      "max": 21,
+      "median": 16.0
+    },
+    "opponent_scores": {
+      "mean": 5.07,
+      "std": 4.000637449207313,
+      "min": 0,
+      "max": 17
+    },
+    "game_lengths": {
+      "mean": 31.78,
+      "std": 5.997632866389872,
+      "min": 4,
+      "max": 42
+    },
+    "rewards": {
+      "mean": 61.70740000000001,
+      "std": 16.914014758182045
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  },
+  "vs_greedy": {
+    "total_games": 100,
+    "wins": 94,
+    "losses": 1,
+    "draws": 5,
+    "win_rate": 94.0,
+    "loss_rate": 1.0,
+    "agent_scores": {
+      "mean": 15.34,
+      "std": 4.193375728455536,
+      "min": 0,
+      "max": 22,
+      "median": 16.0
+    },
+    "opponent_scores": {
+      "mean": 1.11,
+      "std": 2.0044700047643516,
+      "min": 0,
+      "max": 15
+    },
+    "game_lengths": {
+      "mean": 32.14,
+      "std": 6.772030714637966,
+      "min": 4,
+      "max": 42
+    },
+    "rewards": {
+      "mean": 62.1513,
+      "std": 16.689760852390904
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  }
+}

@@ -229,7 +229,7 @@ project/
 │   └── splendor_gym_wrapper.py      # Gym Environment Wrapper
 ├── scripts/
 │   ├── train_score_based.py         # Training Script
-│   └── evaluate_score_based.py      # Evaluation Script
+│   └── evaluate_score_based_v3.py   # Evaluation Script (current)
 ├── configs/training/
 │   └── ppo_score_based.yaml         # Training Config
 └── tests/
@@ -459,8 +459,8 @@ project/logs/ppo_score_based_v1_20260224_113524/
 
 **Evaluation Results**:
 ```
-project/experiments/evaluation/ppo_score_based_eval/
-└── evaluation_results_20260225_185703.json
+project/experiments/evaluation/ppo_score_based_eval_v3/
+└── eval_v3_20260225_*.json
 ```
 
 **Training Logs**:
@@ -509,10 +509,10 @@ action_idx, _states = model.predict(obs, deterministic=True)
 
 **Run Evaluation**:
 ```bash
-python project/scripts/evaluate_score_based.py \
+python project/scripts/evaluate_score_based_v3.py \
   --model project/logs/ppo_score_based_v1_20260224_113524/final_model \
   --games 100 \
-  --output project/experiments/evaluation/ppo_eval_new
+  --output project/experiments/evaluation/ppo_score_based_eval_v3
 ```
 
 ### D. References

@@ -15,9 +15,13 @@ training_new.log
 evaluation_log.txt
 nohup.out
 
-# Large model files (keep only final models)
-project/logs/ppo_score_based_v1_*/logs/checkpoints/ppo_score_based_*_steps.zip
-project/logs/ppo_quick_test_*/
+# Project logs/artifacts (keep directory placeholder only)
+project/logs/**
+!project/logs/.gitkeep
+
+# Optional local outputs
+project/outputs/**
+!project/outputs/.gitkeep
 
 # Temporary test files (root level only)
 /test_*.py

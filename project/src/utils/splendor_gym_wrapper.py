@@ -191,6 +191,11 @@ class SplendorGymWrapper(gym.Env):
         self.prev_score = self.env.current_state_of_the_game.list_of_players_hands[self.player_id].number_of_my_points()
         self._update_legal_actions()
         obs = self._get_observation()
+
+        # Edge case: no legal actions available for next decision.
+        # End the episode explicitly to avoid loops/tests sampling from empty sets.
+        if not terminated and not truncated and len(self.cached_legal_actions) == 0:
+            truncated = True
         
         # Prepare info
         info = {
@@ -202,6 +207,8 @@ class SplendorGymWrapper(gym.Env):
             'agent_lost': agent_lost,
             'score_diff': score_diff
         }
+        if truncated and len(self.cached_legal_actions) == 0:
+            info['error'] = 'no_legal_actions'
         
         return obs, reward, terminated, truncated, info
     

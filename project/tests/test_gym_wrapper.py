@@ -105,6 +105,9 @@ class TestSplendorGymWrapper:
         max_steps = 500
         
         while steps < max_steps:
+            if len(self.env.cached_legal_actions) == 0:
+                break
+
             # Random valid action
             action_idx = np.random.randint(0, len(self.env.cached_legal_actions))
             next_obs, reward, terminated, truncated, info = self.env.step(action_idx)

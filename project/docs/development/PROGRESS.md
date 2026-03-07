@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 9 - Architecture Pivot: Action Masking (`MaskablePPO`)
+**Current Phase**: Phase 9 Complete ✅ — MaskablePPO (V3) trained & evaluated
 
 ---
 
@@ -20,19 +20,68 @@
 
 ---
 
-## 🏃 Current Work: Phase 9 — Architecture Pivot (Action Masking)
+## ✅ Phase 9 — Architecture Pivot: MaskablePPO (COMPLETE)
 
-### Task 9: Implement MaskablePPO
-- [ ] **Task 9.1**: Install `sb3-contrib` dependency for `MaskablePPO`
-- [ ] **Task 9.2**: Update `SplendorGymWrapper` to support `action_masks()`
-- [ ] **Task 9.3**: Implement `MaskablePPO` training script
-- [ ] **Task 9.4**: Validate masking prevents all illegal actions during training
+**Date**: 2026-03-03 to 2026-03-06  
+**Model**: `project/logs/maskable_ppo_score_v3_20260303_183435/`
+
+- [x] **Task 9.1**: Install `sb3-contrib` → MaskablePPO 2.7.1 installed
+- [x] **Task 9.2**: Added `action_masks()` method to `SplendorGymWrapper`
+  - Also fixed Issue 4: `cached_legal_actions == 0` now triggers `truncated = True`
+- [x] **Task 9.3**: Created `project/scripts/train_maskable_ppo.py`
+- [x] **Task 9.4**: Training verified — 0 invalid actions during all 1M steps
+- [x] **Task 9.5**: 1M timestep training completed
+  - Final model: `final_model.zip` + `eval/best_model.zip` (at 820K steps)
+  - Peak eval reward: **67.8** (vs V1 peak: ~38, V2 peak: ~6.6)
+  - Mean reward stabilized at **60–67** range from step 10K onward
+  - 20 checkpoints saved (every 50K steps)
+- [x] **Task 9.6**: Evaluation script created: `project/scripts/evaluate_maskable_ppo.py`
+- [x] **Task 9.7**: Comparison plotting script: `project/scripts/extract_tb_v3.py`
+
+### V3 Training Metrics (eval rewards from `evaluations.npz`)
+| Timestep | Mean Reward |
+|----------|-------------|
+| 10,000   | 66.2        |
+| 310,000  | 66.2        |
+| 610,000  | 66.8        |
+| 820,000  | **67.8** (peak) |
+| 1,000,000 | 59.7       |
+
+### Three-way comparison
+| Metric | V1 (PPO) | V2 (PPO+Greedy) | V3 (MaskablePPO) |
+|--------|----------|-----------------|------------------|
+| Peak eval reward | ~38 | ~6.6 | **67.8** |
+| Final eval reward | ~28 | -3.9 | 59.7 |
+| Explained variance | 0.54 | -0.167 | 0.54+ |
+| Invalid actions/game | 40-60% | ~0 (but passive) | **0% by design** |
+
+### V3 Evaluation Results (2026-03-06, `evaluate_maskable_ppo.py`, 100 games each)
+| Opponent | Win Rate | Agent Score | Opp Score | Invalid Actions |
+|----------|----------|-------------|-----------|-----------------|
+| Random (wrapper) | **95.0%** (95/0/5) | 15.4 ± 4.1 | 0.9 ± 1.7 | 0 |
+| RandomAgent | **93.0%** (93/4/3) | 15.5 ± 3.5 | 5.1 ± 4.0 | 0 |
+| GreedyAgent | **94.0%** (94/1/5) | 15.3 ± 4.2 | 1.1 ± 2.0 | 0 |
+
+### V1 vs V3 Win Rate Comparison
+| Opponent | V1 (PPO, with fallback) | V3 (MaskablePPO) | Improvement |
+|----------|------------------------|------------------|-------------|
+| Random   | 51%                    | **95%**          | +44 pp      |
+| RandomAgent | 43%                 | **93%**          | +50 pp      |
+| GreedyAgent | 53%                 | **94%**          | +41 pp      |
+
+Comparison plots: `project/experiments/reports/v3_figures/`
+- `v1_vs_v3_eval_reward.png` — training eval reward curves
+- `v3_eval_reward.png` — V3-only detailed curve
+- `v1_vs_v3_win_rates.png` — win rate bar chart
+
+- [x] **Task 9.8**: V3 evaluation vs all opponents — complete (2026-03-06)
+- [x] **Task 9.9**: V1 vs V3 comparison report/plots generated
 
 ---
 
-## 📅 Upcoming: Phase 10 — Event-based Reward Shaping
-- [ ] **Task 10.1**: Define "Event" rewards (Card Tier, Noble proximity, Gem efficiency)
-- [ ] **Task 10.2**: Compare MaskablePPO (Score) vs MaskablePPO (Event)
+## 📅 Upcoming phases (event-based reward shaping deferred)
+
+- Phase 10 (Event-based rewards): deferred until core pipeline is documented
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks
