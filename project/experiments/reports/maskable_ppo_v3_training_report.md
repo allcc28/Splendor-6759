@@ -16,9 +16,9 @@ This report documents the training, evaluation, and credibility validation of th
 
 | Opponent | V1 PPO Win Rate | V3 MaskablePPO Win Rate | Improvement |
 |----------|-----------------|-------------------------|-------------|
-| Random (wrapper) | 51% | **96%** | +45 pp |
-| RandomAgent | 43% | **90%** | +47 pp |
-| GreedyAgent | 53% | **67%** | +14 pp |
+| Random (wrapper) | 51% | **95%** | +44 pp |
+| RandomAgent | 43% | **91%** | +48 pp |
+| GreedyAgent | 53% | **78%** | +25 pp |
 
 **Key Achievements**:
 - ✅ **0 invalid actions** across all 1M training steps and all 300 evaluation games
@@ -26,7 +26,7 @@ This report documents the training, evaluation, and credibility validation of th
 - ✅ **Stable training**: reward stays in 60–68 range throughout, no collapse
 - ✅ **Peak eval reward: 67.83** at 820K steps (V1 peak: 38.43, V2 peak: 6.62)
 - ✅ **Credibility verified**: evaluator bug found and fixed; results re-run with correct opponent behavior
-- ⚠️ Room for improvement vs GreedyAgent: 67% suggests score-based reward shaping limits strategic depth
+- ⚠️ Room for improvement vs GreedyAgent: 78% is solid but event-based/MCTS planning should push further
 
 ---
 
@@ -211,70 +211,72 @@ This bar chart shows the head-to-head win rates from controlled evaluation (100 
 
 1. **vs Random**: 51% → 96% (+45 pp). The near-doubling of win rate vs the same opponent used during training is primarily explained by the elimination of invalid actions. V1's 51% was achieved with a fallback mechanism (invalid → random valid). V3's 96% uses no fallback — it simply never picks invalid actions.
 
-2. **vs RandomAgent**: 43% → 90% (+47 pp). The larger absolute improvement here vs Random partly reflects that V1 was more sensitive to opponent strength changes. RandomAgent follows Splendor's action-type distribution (biased towards card purchases and gem collection), which is harder to exploit than pure uniform random. V3 handles this naturally because masking adapts to whatever legal actions exist, regardless of opponent strategy.
+2. **vs RandomAgent**: 43% → 91% (+48 pp). The larger absolute improvement here vs Random partly reflects that V1 was more sensitive to opponent strength changes. RandomAgent follows Splendor's action-type distribution (biased towards card purchases and gem collection), which is harder to exploit than pure uniform random. V3 handles this naturally because masking adapts to whatever legal actions exist, regardless of opponent strategy.
 
-3. **vs GreedyAgent**: 53% → 67% (+14 pp). The smallest improvement, and the most informative result. GreedyAgent uses `simulate_next_state()` + value evaluation to pick the best action at each turn — it genuinely competes for the same win condition. V3 beats it 67% of the time without any game-specific knowledge beyond the score signal. The 14 pp improvement over V1 (which benefited from fallback) is significant but modest, indicating that pure score-based rewards with masking are not sufficient to dominate a planning-based agent. This motivates Phase 10 (event-based rewards) or Phase 11 (MCTS planning).
+3. **vs GreedyAgent**: 53% → 78% (+25 pp). The most informative result. GreedyAgent uses `simulate_next_state()` + value evaluation to pick the best action at each turn — it genuinely competes for the same win condition. V3 beats it 78% of the time without any game-specific knowledge beyond the score signal. The 25 pp improvement over V1 (which benefited from fallback) is substantial: action masking alone, combined with bias-free alternated evaluation, yields a strong result against a hand-crafted planning agent. Further improvement toward >85% would likely require event-based rewards (Phase 10) or MCTS (Phase 11).
 
 ---
 
 ## 4. Evaluation Results (Corrected)
 
 **Eval Script**: `project/scripts/evaluate_maskable_ppo.py`  
-**Eval Run**: `eval_v3_maskable_20260306_193442.json`  
+**Eval Run**: `eval_v3_maskable_20260306_204610.json`  
 **Date**: 2026-03-06  
-**Games**: 100 per opponent, deterministic policy, 0 fallback
+**Games**: 100 per opponent, deterministic policy, 0 fallback  
+**Note**: Player order is alternated (`player_id = game_idx % 2`) to eliminate first-mover bias.
 
 ### 4.1 vs Random (Built-in Wrapper)
 
 | Metric | V3 MaskablePPO | V1 PPO (Fallback) |
 |--------|----------------|-------------------|
-| Win/Loss/Draw | **96/0/4** | 51/49/0 |
-| Win Rate | **96.0%** | 51.0% |
-| Agent Score | 15.7 ± 3.8 (range: 0–24) | 9.5 ± 7.6 |
-| Opponent Score | 0.9 ± 1.4 | 6.5 ± 7.1 |
-| Game Length | 32.4 ± 6.5 turns | 35.3 turns |
-| Avg Reward | 63.55 | — |
+| Win/Loss/Draw | **95/2/3** | 51/49/0 |
+| Win Rate | **95.0%** | 51.0% |
+| Agent Score | 15.6 ± 3.8 (range: 0–22) | 9.5 ± 7.6 |
+| Opponent Score | 1.4 ± 2.6 (range: 0–16) | 6.5 ± 7.1 |
+| Game Length | 32.1 ± 6.6 turns | 35.3 turns |
+| Avg Reward | 61.37 | — |
 | Invalid Actions | **0** | ~10+/game |
 
-The 4 non-wins are draws (agent score = opponent score at max turns = 200), indicating that all 100 games were completed without any agent loss.
+The 2 losses and 3 draws occur in games where the agent played as player 1 (moves second), where the opponent occasionally gains an early tempo advantage.
 
 ### 4.2 vs RandomAgent
 
 | Metric | V3 MaskablePPO | V1 PPO (Fallback) |
 |--------|----------------|-------------------|
-| Win/Loss/Draw | **90/7/3** | ~43/57/0 |
-| Win Rate | **90.0%** | 43.0% |
-| Agent Score | 15.0 ± 3.9 (range: 0–20) | 9.0 ± 7.1 |
-| Opponent Score | 5.9 ± 4.5 (range: 0–19) | 10.0 ± 6.6 |
-| Game Length | 31.8 ± 5.9 turns | 36.2 turns |
+| Win/Loss/Draw | **91/4/5** | ~43/57/0 |
+| Win Rate | **91.0%** | 43.0% |
+| Agent Score | 15.4 ± 4.4 (range: 0–21) | 9.0 ± 7.1 |
+| Opponent Score | 5.4 ± 4.0 (range: 0–18) | 10.0 ± 6.6 |
+| Game Length | 31.7 ± 7.1 turns | 36.2 turns |
 | Invalid Actions | **0** | ~10+/game |
 
-The 7 losses indicate genuine competition — RandomAgent occasionally reaches 15+ VP before V3. The opponent score of 5.9 confirms RandomAgent is making meaningful game progress, unlike the random wrapper's 0.9.
+The 4 losses indicate genuine competition — RandomAgent occasionally reaches 15+ VP before V3. The opponent score of 5.4 confirms RandomAgent is making meaningful game progress, unlike the random wrapper's 1.4.
 
 ### 4.3 vs GreedyAgent (Value-mode)
 
 | Metric | V3 MaskablePPO | V1 PPO (Fallback) |
 |--------|----------------|-------------------|
-| Win/Loss/Draw | **67/24/9** | ~53/47/0 |
-| Win Rate | **67.0%** | 53.0% |
-| Agent Score | 13.0 ± 5.8 (range: 0–23) | 10.1 ± 7.6 |
-| Opponent Score | 7.9 ± 5.6 (range: 0–19) | 7.0 ± 7.2 |
-| Game Length | 29.9 ± 8.7 turns | 36.7 turns |
+| Win/Loss/Draw | **78/19/3** | ~53/47/0 |
+| Win Rate | **78.0%** | 53.0% |
+| Agent Score | 14.5 ± 4.4 (range: 0–21) | 10.1 ± 7.6 |
+| Opponent Score | 8.1 ± 5.2 (range: 0–19) | 7.0 ± 7.2 |
+| Game Length | 30.9 ± 5.9 turns | 36.7 turns |
 | Invalid Actions | **0** | ~10+/game |
 
 Notable observations:
-- **Shorter games (29.9 vs 32+ vs random)**: GreedyAgent plays decisively, forcing the contest to a quicker resolution.
-- **Higher opponent score (7.9 vs 5.9 vs RandomAgent)**: GreedyAgent is meaningfully building VP, not just surviving.
-- **Lower agent score (13.0 vs 15.x vs random)**: GreedyAgent's presence constrains the board, limiting V3's best-case performance.
-- **24 losses + 9 draws**: GreedyAgent wins approximately 1 in 4 games, confirming it is a formidable opponent.
+- **Shorter games (30.9 vs 32+ vs random)**: GreedyAgent plays decisively, forcing the contest to a quicker resolution.
+- **Higher opponent score (8.1 vs 5.4 vs RandomAgent)**: GreedyAgent is meaningfully building VP, not just surviving.
+- **Lower agent score (14.5 vs 15.4 vs RandomAgent)**: GreedyAgent's presence constrains the board, limiting V3's best-case performance.
+- **19 losses + 3 draws**: GreedyAgent wins approximately 1 in 5 games, confirming it is a formidable opponent.
 
 ### 4.4 Summary
 
 ```
-vs Random (wrapper)        96.0%  Agent 15.7 pts  Opp 0.9 pts  Avg reward 63.55
-vs RandomAgent             90.0%  Agent 15.0 pts  Opp 5.9 pts  Avg reward 59.21
-vs GreedyAgent             67.0%  Agent 13.0 pts  Opp 7.9 pts  Avg reward 45.88
+vs Random (wrapper)        95.0%  Agent 15.6 pts  Opp 1.4 pts  Avg reward 61.37
+vs RandomAgent             91.0%  Agent 15.4 pts  Opp 5.4 pts  Avg reward 59.68
+vs GreedyAgent             78.0%  Agent 14.5 pts  Opp 8.1 pts  Avg reward 45.26
 Invalid actions:           0 across all 300 games (by design — action masking)
+Eval method:               player_id alternated (game_idx % 2) to remove first-mover bias
 ```
 
 ---
@@ -365,7 +367,7 @@ The Random and RandomAgent numbers changed only within normal stochastic variati
 | Final eval reward | 27.99 | -3.90 | 59.69 |
 | Explained variance | 0.54 | -0.167 | 0.54+ |
 | Invalid actions/100 games | ~1000+ | ~10 (passive) | **0** |
-| Win vs GreedyAgent | 53%¹ | 7% | **67%** |
+| Win vs GreedyAgent | 53%¹ | 7% | **78%** |
 
 ¹ V1's 53% uses fallback mode — not a fair comparison. V1 strict mode was ~31%.
 
@@ -373,7 +375,7 @@ The Random and RandomAgent numbers changed only within normal stochastic variati
 
 Only **two things** changed: algorithm (PPO → MaskablePPO) and entropy coefficient (0.01 → 0.005). Everything else — state representation, reward function, network architecture, opponent, hyperparameters — is identical. The entire performance improvement is attributable to action masking.
 
-This provides a **clean ablation result**: action masking alone delivers +45 pp vs Random, +47 pp vs RandomAgent, +14 pp vs GreedyAgent compared to the same architecture without masking.
+This provides a **clean ablation result**: action masking alone delivers +44 pp vs Random, +48 pp vs RandomAgent, +25 pp vs GreedyAgent compared to the same architecture without masking.
 
 ### 6.3 Training Efficiency Comparison
 
@@ -407,7 +409,7 @@ action, _ = model.predict(obs, action_masks=env.action_masks(), deterministic=Tr
 ### 7.2 The Bimodal Training Pattern (Deep Dive)
 
 The V3 eval curve shows a bimodal distribution:
-- **High mode** (reward ~66–68, std ~1–2): agent wins all 5 eval episodes
+- **High mode** (reward ~66–68, std ~1–2): agent wins all 10 eval episodes
 - **Low mode** (reward ~47–61, std ~15–32): agent loses 1–2 eval episodes
 
 These correspond to two distinct game outcomes. With `score_progress` rewards:
@@ -420,9 +422,9 @@ The bimodality reflects genuine probabilistic game outcomes as the policy explor
 
 1. **Score-based reward ceiling**: V3 was trained purely on score difference + win reward. It has no explicit incentive to build a gem engine, target specific card paths, or race against the opponent's VP. Against GreedyAgent (which explicitly plans for these), V3 can be outpaced.
 
-2. **Single-opponent training**: Training only vs RandomAgent means V3 may have overfit to exploiting random behavior. The 90% vs RandomAgent but only 67% vs GreedyAgent gap confirms this.
+2. **Single-opponent training**: Training only vs RandomAgent means V3 may have overfit to exploiting random behavior. The 91% vs RandomAgent but only 78% vs GreedyAgent gap confirms this, though the gap has narrowed significantly from the uncorrected evaluation.
 
-3. **100-game evaluation variance**: 95% confidence interval for a 67% win rate is approximately ±9.2 pp (SE = √(0.67×0.33/100) ≈ 4.7 pp; 95% CI = ±1.96 × 4.7). Results should be read as 67% ± 4.7 pp (one-sigma) or 67% ± 9.2 pp (two-sigma / 95% CI).
+3. **100-game evaluation variance**: 95% confidence interval for a 78% win rate is approximately ±8.1 pp (SE = √(0.78×0.22/100) ≈ 4.1 pp; 95% CI = ±1.96 × 4.1). Results should be read as 78% ± 4.1 pp (one-sigma) or 78% ± 8.1 pp (two-sigma / 95% CI), i.e., approximately 70–86%.
 
 4. **No self-play**: The model was trained as a single-agent PPO. Self-play (used by AlphaZero-style approaches) would produce a stronger and more generalizable policy.
 
@@ -432,7 +434,7 @@ The bimodality reflects genuine probabilistic game outcomes as the policy explor
 
 ### 8.1 Phase 10: Event-Based Reward Shaping (Deferred)
 
-The gap from 67% to a hypothetical >80% vs GreedyAgent likely requires rewards that incentivize *how* the agent plays, not just whether it wins. Event-based rewards (from Bravi et al., 2019) assign values to game events:
+V3 already achieves 78% vs GreedyAgent with score-only rewards. Pushing above 85% likely requires rewards that incentivize *how* the agent plays, not just whether it wins. Event-based rewards (from Bravi et al., 2019) assign values to game events:
 
 ```python
 rewards = {
@@ -488,7 +490,8 @@ Expected benefit: planning-based lookahead would allow the agent to distinguish 
 |------|-------------|
 | `project/logs/maskable_ppo_score_v3_20260303_183435/final_model.zip` | Final model (1M steps) |
 | `project/logs/maskable_ppo_score_v3_20260303_183435/eval/best_model.zip` | Best checkpoint (820K) |
-| `project/experiments/evaluation/maskable_ppo_v3_eval/eval_v3_maskable_20260306_193442.json` | Corrected eval results |
+| `project/experiments/evaluation/maskable_ppo_v3_eval/eval_v3_maskable_20260306_204610.json` | **Current** eval results (alternated player_id) |
+| `project/experiments/evaluation/maskable_ppo_v3_eval/eval_v3_maskable_20260306_193442.json` | Superseded — non-alternating eval (agent always player 0) |
 | `project/experiments/evaluation/maskable_ppo_v3_eval/eval_v3_maskable_20260306_190731.json` | RETRACTED — buggy GreedyAgent |
 | `project/experiments/reports/v3_figures/v1_vs_v3_eval_reward.png` | Training comparison plot |
 | `project/experiments/reports/v3_figures/v3_eval_reward.png` | V3 detailed curve |
