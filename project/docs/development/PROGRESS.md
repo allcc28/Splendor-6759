@@ -86,9 +86,55 @@ Comparison plots: `project/experiments/reports/v3_figures/`
 
 ---
 
-## 📅 Upcoming phases (event-based reward shaping deferred)
+## 📅 Phase 10: Score-Based Ceiling Hunt (2026-03-06)
 
-- Phase 10 (Event-based rewards): deferred until core pipeline is documented
+**Goal**: Determine the maximum win rate achievable with score-based rewards before pivoting to event-based shaping.  
+**Stop-loss**: If best V4 experiment improves vs-Greedy by < 5 pp over V3 (78%), cut score-based and start Phase 11 (event rewards).
+
+### Experiment Matrix
+
+| Run | Config | Key change vs V3 | Hypothesis | Status |
+|-----|--------|-----------------|------------|--------|
+| V4a | `maskable_ppo_v4a_ent_lr.yaml` | `ent_coef` 0.005→0.01, `lr` 3e-4→1e-4 | More exploration, slower convergence | ⏳ Queued |
+| V4b | `maskable_ppo_v4b_rollout_curriculum.yaml` | `n_steps` 2048→4096, greedy opp last 300K | Longer credit assignment + hard opponent fine-tune | ⏳ Queued |
+| V4c | `maskable_ppo_v4c_curriculum.yaml` | 3-stage curriculum: none→random→greedy | Smooth difficulty ramp | ⏳ Queued |
+
+### Evaluation Protocol
+- After each run: `python project/scripts/evaluate_maskable_ppo.py --games 100`
+- Compare to V3 baseline (78% vs GreedyAgent) using `compare_checkpoints.py`
+- Decision gate: if best V4 < 83% vs Greedy → pivot to Phase 11
+
+### Run Order
+1. Launch V4a first (fastest, 1M steps, ~1h on RTX 4090)
+2. While V4a trains, review TensorBoard at ~500K steps
+3. If V4a looks promising → run V4b; else skip to V4c
+4. Final decision at end of day
+
+```bash
+# V4a (run first)
+python project/scripts/train_maskable_ppo.py \
+  --config project/configs/training/maskable_ppo_v4a_ent_lr.yaml
+
+# V4b (2-stage curriculum via train_curriculum.py)
+python project/scripts/train_curriculum.py \
+  --config project/configs/training/maskable_ppo_v4b_rollout_curriculum.yaml
+
+# V4c (3-stage full curriculum)
+python project/scripts/train_curriculum.py \
+  --config project/configs/training/maskable_ppo_v4c_curriculum.yaml
+```
+
+### Results (fill in after each eval)
+| Run | vs Random | vs RandomAgent | vs Greedy | Δ vs V3 Greedy | Decision |
+|-----|-----------|---------------|-----------|----------------|----------|
+| V3 (baseline) | 95% | 91% | **78%** | — | canonical |
+| V4a | | | | | |
+| V4b | | | | | |
+| V4c | | | | | |
+
+---
+
+## 📅 Phase 11 (Event-based rewards): pending Phase 10 stop-loss decision
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks

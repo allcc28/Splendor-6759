@@ -1,0 +1,85 @@
+# MaskablePPO v4b — Longer rollouts + greedy opponent in final phase
+#
+# Hypothesis: n_steps=2048 gives ~10 episodes per rollout in Splendor.
+# Doubling to 4096 gives 20 episodes → better credit assignment for
+# delayed gem-collection rewards that pay off several turns later.
+#
+# Opponent schedule (handled by train_curriculum.py, not this config):
+#   Steps 0–700K:   RandomAgent  (build solid foundations)
+#   Steps 700K–1M:  GreedyAgent  (fine-tune against harder opponent)
+#
+# This config defines the FIRST phase (random). The curriculum script
+# loads a second config block or hot-swaps the opponent at 700K.
+#
+# Stop-loss: if vs-Greedy win rate < max(v3, v4a) + 5pp, cut score-based.
+
+environment:
+  name: "SplendorMaskableScoreBased"
+  reward_mode: "score_progress"
+  max_turns: 120
+  opponent: "random"           # Phase 1; curriculum script swaps to greedy at 700K
+
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+
+  n_steps: 4096                # ← 2× v3 batch rollout
+  batch_size: 128              # keep mini-batch ratio ~1/32 of n_steps
+  n_epochs: 10
+
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  clip_range: 0.2
+  clip_range_vf: null
+
+  normalize_advantage: true
+
+  ent_coef: 0.005
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+training:
+  total_timesteps: 700000      # Phase 1 only; curriculum script adds phase 2
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+# Phase 2 settings (opponent swap at 700K steps)
+curriculum:
+  phase2_opponent: "greedy"
+  phase2_timesteps: 300000     # Additional steps vs GreedyAgent
+  phase2_lr: 0.0001            # Lower LR for fine-tuning
+
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_score"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+experiment:
+  name: "maskable_ppo_v4b_rollout_curriculum"
+  tags:
+    - "maskable_ppo"
+    - "score_based"
+    - "action_masking"
+    - "phase10"
+    - "v4b"
+    - "longer_rollout"
+    - "curriculum"

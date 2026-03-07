@@ -1,0 +1,94 @@
+# MaskablePPO v4c — Full 3-stage opponent curriculum
+#
+# Hypothesis: curriculum learning from easy → hard opponents gives a
+# smoother loss landscape. RandomAgent first builds core gem-buying
+# competency; RandomAgent second adds mid-level competition; GreedyAgent
+# final stage forces strategic depth.
+#
+# Stage schedule:
+#   0  – 500K:  Random (wrapper) — fast cheap games, quick policy formation
+#   500K–800K:  RandomAgent      — slightly harder, broader action distribution
+#   800K–1M:    GreedyAgent      — hard opponent, fine-tuning
+#
+# This config defines Stage 1. The train_curriculum.py script reads the
+# `curriculum` block and hot-swaps the opponent between stages.
+
+environment:
+  name: "SplendorMaskableScoreBased"
+  reward_mode: "score_progress"
+  max_turns: 120
+  opponent: "none"             # Stage 1: fast built-in random (no choose_action overhead)
+
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  clip_range: 0.2
+  clip_range_vf: null
+
+  normalize_advantage: true
+
+  ent_coef: 0.005
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+training:
+  total_timesteps: 500000      # Stage 1 only; curriculum script adds stages 2+3
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+# Curriculum stages 2 and 3 (read by train_curriculum.py)
+curriculum:
+  stages:
+    - opponent: "none"
+      timesteps: 500000
+      lr: 0.0003
+      label: "Stage1_Random"
+    - opponent: "random"
+      timesteps: 300000
+      lr: 0.0002
+      label: "Stage2_RandomAgent"
+    - opponent: "greedy"
+      timesteps: 200000
+      lr: 0.0001
+      label: "Stage3_Greedy"
+
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_score"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+experiment:
+  name: "maskable_ppo_v4c_curriculum"
+  tags:
+    - "maskable_ppo"
+    - "score_based"
+    - "action_masking"
+    - "phase10"
+    - "v4c"
+    - "full_curriculum"

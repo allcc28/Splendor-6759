@@ -1,0 +1,75 @@
+# MaskablePPO v4a — Higher entropy + lower learning rate
+#
+# Hypothesis: v3 may have converged too fast to a locally-optimal policy
+# that exploits RandomAgent but doesn't generalise to GreedyAgent.
+#   ent_coef: 0.005 → 0.01  (more exploration throughout training)
+#   lr:       3e-4  → 1e-4  (slower, more stable updates)
+# Everything else identical to v3.
+#
+# Stop-loss: if vs-Greedy win rate < 78% + 5pp = 83%, do not proceed to v4b.
+# If yes, move on to v4b.
+
+environment:
+  name: "SplendorMaskableScoreBased"
+  reward_mode: "score_progress"
+  max_turns: 120
+  opponent: "random"
+
+ppo:
+  learning_rate: 0.0001        # ← 3x lower than v3
+  lr_schedule: "constant"
+
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+
+  gamma: 0.99
+  gae_lambda: 0.95
+
+  clip_range: 0.2
+  clip_range_vf: null
+
+  normalize_advantage: true
+
+  ent_coef: 0.01               # ← 2× higher than v3
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+training:
+  total_timesteps: 1000000
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_score"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+experiment:
+  name: "maskable_ppo_v4a_ent_lr"
+  tags:
+    - "maskable_ppo"
+    - "score_based"
+    - "action_masking"
+    - "phase10"
+    - "v4a"
+    - "higher_ent"
+    - "lower_lr"
