@@ -92,6 +92,9 @@ def get_actor_hand(next_state):
     """
     try:
         pid_now = int(next_state.active_player_id)  # opponent is now active
+        # NOTE: `1 - pid_now` is only correct for 2-player games.
+        # If this code is ever extended to 3+ players, replace with an
+        # explicit actor_pid argument passed in from the call site.
         actor_pid = 1 - pid_now                      # the one who just moved
         return next_state.list_of_players_hands[actor_pid]
     except Exception:

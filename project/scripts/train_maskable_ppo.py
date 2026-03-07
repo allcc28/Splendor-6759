@@ -42,6 +42,7 @@ except ImportError:
     USING_MASKABLE_EVAL = False
 
 from utils.splendor_gym_wrapper import make_splendor_env
+from agents.random_agent import RandomAgent
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -58,15 +59,38 @@ def _mask_fn(env) -> np.ndarray:
     return env.action_masks()
 
 
+def _make_opponent(opponent_cfg):
+    """
+    Instantiate an opponent agent from the config string.
+
+    Supported values:
+      'random' / 'random_agent' → RandomAgent()
+      null / None / 'none'      → None  (wrapper uses built-in fast-random)
+
+    Raises ValueError for unrecognised strings so misconfiguration is
+    caught immediately rather than silently falling back to random.
+    """
+    if opponent_cfg is None:
+        return None
+    opp = str(opponent_cfg).lower().strip()
+    if opp in ("random", "random_agent", "none", ""):
+        return RandomAgent() if opp in ("random", "random_agent") else None
+    raise ValueError(
+        f"Unknown opponent config value: '{opponent_cfg}'. "
+        "Supported: 'random', null/None."
+    )
+
+
 def create_env(config: dict, monitor_dir: str = None):
     """
     Create a single training environment wrapped with ActionMasker so that
     MaskablePPO can find the mask via env.action_masks().
     """
     env_config = config["environment"]
+    opponent = _make_opponent(env_config.get("opponent"))
     env = make_splendor_env(
         reward_mode=env_config["reward_mode"],
-        opponent_agent=None,
+        opponent_agent=opponent,
         max_turns=env_config["max_turns"],
     )
     env = ActionMasker(env, _mask_fn)       # ← exposes action_masks() to SB3
@@ -79,9 +103,10 @@ def create_env(config: dict, monitor_dir: str = None):
 def create_eval_env(config: dict):
     """Create a separate eval environment (also masked)."""
     env_config = config["environment"]
+    opponent = _make_opponent(env_config.get("opponent"))
     env = make_splendor_env(
         reward_mode=env_config["reward_mode"],
-        opponent_agent=None,
+        opponent_agent=opponent,
         max_turns=env_config["max_turns"],
     )
     return ActionMasker(env, _mask_fn)

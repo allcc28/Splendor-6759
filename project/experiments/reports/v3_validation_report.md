@@ -151,7 +151,7 @@ The vs-Random and vs-RandomAgent results are consistent with the previous run (s
 
 2. **GreedyAgent as benchmark ceiling**: GreedyAgent uses lookahead simulation + value function. V3's 67% win rate is a realistic competitive baseline before adding planning (Phase 3 MCTS).
 
-3. **Evaluation sample size**: 100 games per opponent. Confidence interval at 95%: ±4.4 pp for a 67% estimate. The vs-GreedyAgent 67% result should be read as approximately 63–71%.
+3. **Evaluation sample size**: 100 games per opponent. Standard error: ±4.7 pp; 95% CI: ±9.2 pp for a 67% estimate (SE = √(0.67×0.33/100)). The vs-GreedyAgent 67% result should be read as approximately 58–76%.
 
 ---
 

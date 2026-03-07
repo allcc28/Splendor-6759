@@ -52,11 +52,16 @@ def evaluate_vs_opponent(
     total_rewards = []
     zero_actions_count = 0
 
-    for _ in tqdm(range(num_games), desc=desc):
+    for game_idx in tqdm(range(num_games), desc=desc):
+        # Alternate which player moves first to remove first-mover bias.
+        # Even games: agent is player 0 (moves first).
+        # Odd  games: agent is player 1 (opponent moves first).
+        player_id = game_idx % 2
         env = SplendorGymWrapper(
             opponent_agent=opponent_agent,
             reward_mode="score_progress",
             max_turns=max_turns,
+            player_id=player_id,
         )
         obs, info = env.reset()
         done = False

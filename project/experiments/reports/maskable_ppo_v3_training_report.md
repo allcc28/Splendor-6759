@@ -139,7 +139,7 @@ When the opponent wins, an additional -1.0 penalty is applied. This reward desig
 | **Final Model** | `final_model.zip` (3.5 MB) |
 | **Best Model** | `eval/best_model.zip` (at 820K steps) |
 | **Checkpoints** | 20 (every 50K steps) |
-| **Eval Frequency** | Every 10K steps (100 eval episodes per checkpoint) |
+| **Eval Frequency** | Every 10K steps (10 eval episodes per checkpoint) |
 
 ---
 
@@ -149,7 +149,7 @@ When the opponent wins, an additional -1.0 penalty is applied. This reward desig
 
 ![V1 vs V3 Eval Reward Comparison](v3_figures/v1_vs_v3_eval_reward.png)
 
-This figure plots the mean evaluation reward (± 1 std) from `evaluations.npz` for both models. Each evaluation point is the mean of 5 episodes using the greedy policy.
+This figure plots the mean evaluation reward (± 1 std) from `evaluations.npz` for both models. Each evaluation point is the mean of 10 episodes using the greedy policy.
 
 **V1 (PPO, blue):**
 
@@ -422,7 +422,7 @@ The bimodality reflects genuine probabilistic game outcomes as the policy explor
 
 2. **Single-opponent training**: Training only vs RandomAgent means V3 may have overfit to exploiting random behavior. The 90% vs RandomAgent but only 67% vs GreedyAgent gap confirms this.
 
-3. **100-game evaluation variance**: 95% confidence interval for a 67% win rate is approximately ±9 pp. Results should be read as 67% ± 4.4 pp (one-sigma) or 67% ± 8.8 pp (two-sigma).
+3. **100-game evaluation variance**: 95% confidence interval for a 67% win rate is approximately ±9.2 pp (SE = √(0.67×0.33/100) ≈ 4.7 pp; 95% CI = ±1.96 × 4.7). Results should be read as 67% ± 4.7 pp (one-sigma) or 67% ± 9.2 pp (two-sigma / 95% CI).
 
 4. **No self-play**: The model was trained as a single-agent PPO. Self-play (used by AlphaZero-style approaches) would produce a stronger and more generalizable policy.
 

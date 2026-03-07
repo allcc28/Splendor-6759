@@ -185,7 +185,11 @@ class SplendorGymWrapper(gym.Env):
             if self.env.is_done:
                 terminated = True
                 agent_lost = True
-                reward = -1.0  # Penalty for letting opponent win
+                # Recompute reward using _compute_reward so the correct
+                # mode-specific loss penalty (e.g. -50 for score_progress)
+                # is applied, rather than a hardcoded -1.0 that silently
+                # contradicts the configured reward function.
+                reward = self._compute_reward(score_diff, False, True)
         
         # Update state for next turn
         self.prev_score = self.env.current_state_of_the_game.list_of_players_hands[self.player_id].number_of_my_points()
