@@ -63,11 +63,12 @@ def test_active_player_switch():
     print(f"  Player 1 points after execute: {hand_p1_after.number_of_my_points()}")
 
     if pid_before != pid_after:
-        print("\n  ❌ BUG CONFIRMED: action.execute() switches active player!")
-        print("     GreedyAgent evaluates opponent's (PPO agent's) hand — wrong!")
+        print("\n  ⚠️  action.execute() DOES switch active_player_id (game engine behavior).")
+        print("     Evaluators must use get_actor_hand() (NOT active_players_hand())")
+        print("     after simulate_next_state(). evaluators.py has been fixed.")
     else:
-        print("\n  ✅ OK: active player does NOT switch after execute()")
-        print("     GreedyAgent evaluates its own hand — correct")
+        print("\n  ✅ active player does NOT switch after execute() (unusual)")
+        print("     Using get_active_hand() is safe here")
 
 
 def test_greedy_random_headtohead(n_games=20):
