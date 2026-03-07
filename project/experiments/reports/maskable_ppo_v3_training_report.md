@@ -184,8 +184,8 @@ Looking at the std values, V3's evaluation episodes fall into two distinct modes
 
 | Mode | Mean Reward | Std | Interpretation |
 |------|-------------|-----|----------------|
-| High mode | ~66–68 | ~0.7–2.5 | Agent wins nearly every eval game (~all 5 episodes) |
-| Low mode | ~47–61 | ~15–32 | Agent loses some eval games (~1–2 out of 5) |
+| High mode | ~66–68 | ~0.7–2.5 | Agent wins nearly every eval game (~all 10 episodes) |
+| Low mode | ~47–61 | ~15–32 | Agent loses some eval games (~1–2 out of 10) |
 
 The high-mode points (std ≈ 1) correspond to evaluation episodes where the model won all or almost all games: with `score_progress` rewards and opponent scoring near 0, reward ≈ 0.01 × ~30 turns + 50 win ≈ 50.3. The max is higher (~67) when the agent wins quickly (fewer turns absorbed by the opponent). The low mode (std ≈ 20) occurs when the model occasionally loses one eval episode, pulling the mean down.
 
@@ -343,13 +343,19 @@ def get_actor_hand(next_state):
 
 ### 5.5 Impact on Results
 
-| Opponent | First run (buggy) | Corrected run | Difference |
-|----------|-------------------|---------------|------------|
-| Random | 95.0% | 96.0% | +1 pp (stochastic variation) |
-| RandomAgent | 93.0% | 90.0% | -3 pp (stochastic variation) |
-| GreedyAgent | ~~94.0%~~ | **67.0%** | **-27 pp** ← the actual correction |
+The evaluation numbers evolved through three distinct runs as each issue was found and fixed:
 
-The Random and RandomAgent numbers changed only within normal stochastic variation (both use `RandomAgent.choose_action()` which never calls `simulate_next_state()`, so the bug did not affect them). The GreedyAgent number was entirely invalid — the 27 pp correction is the actual signal.
+| Opponent | Run 1: buggy evaluator | Run 2: evaluator fixed | Run 3: + alternated player_id | **Final** |
+|----------|------------------------|------------------------|-------------------------------|----------|
+| Random | 95.0% | 96.0% | 95.0% | **95%** |
+| RandomAgent | 93.0% | 90.0% | 91.0% | **91%** |
+| GreedyAgent | ~~94.0%~~ | 67.0% | **78.0%** | **78%** |
+
+**Run 1→2** (GreedyAgent evaluator `get_actor_hand` fix): removes the spurious 94% by making GreedyAgent evaluate the correct player's hand. The 67% figure is the first *valid* result for vs-GreedyAgent.
+
+**Run 2→3** (alternated `player_id = game_idx % 2`): removes first-mover bias from the 100-game sample. Games where the agent moved second were previously absent; including them raises the GreedyAgent win rate from 67% → **78%** — the canonical final result reported in Section 4. Random/RandomAgent shift only within sampling noise.
+
+The **78%** figure is the definitive result for all downstream comparisons.
 
 ---
 

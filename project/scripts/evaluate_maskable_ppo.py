@@ -209,13 +209,16 @@ def main():
 
     all_results = {}
 
-    # vs Random (wrapper — same as training conditions)
+    # vs Random (wrapper: opponent_agent=None → built-in fast uniform random)
+    # NOTE: Training uses _make_opponent('random') → RandomAgent() object with
+    # full choose_action() API. These are slightly different random strategies.
+    # Label: "Random (wrapper)" to distinguish from "RandomAgent" below.
     stats = evaluate_vs_opponent(
         model, opponent_agent=None, num_games=args.games,
         max_turns=args.max_turns, desc="v3 vs Random",
     )
     all_results["vs_random_wrapper"] = stats
-    print_results("Random (same as training)", stats)
+    print_results("Random (wrapper)", stats)
 
     # vs RandomAgent object
     random_agent = RandomAgent(distribution="uniform_on_types")
