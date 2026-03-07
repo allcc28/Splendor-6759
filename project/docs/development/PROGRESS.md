@@ -55,27 +55,30 @@
 | Explained variance | 0.54 | -0.167 | 0.54+ |
 | Invalid actions/game | 40-60% | ~0 (but passive) | **0% by design** |
 
-### V3 Evaluation Results (2026-03-06, `evaluate_maskable_ppo.py`, 100 games each)
+### V3 Evaluation Results (2026-03-06, corrected after bug fix — see Task 9.10)
 | Opponent | Win Rate | Agent Score | Opp Score | Invalid Actions |
 |----------|----------|-------------|-----------|-----------------|
-| Random (wrapper) | **95.0%** (95/0/5) | 15.4 ± 4.1 | 0.9 ± 1.7 | 0 |
-| RandomAgent | **93.0%** (93/4/3) | 15.5 ± 3.5 | 5.1 ± 4.0 | 0 |
-| GreedyAgent | **94.0%** (94/1/5) | 15.3 ± 4.2 | 1.1 ± 2.0 | 0 |
+| Random (wrapper) | **96.0%** (96/0/4) | 15.7 ± 3.8 | 0.9 ± 1.4 | 0 |
+| RandomAgent | **90.0%** (90/7/3) | 15.0 ± 3.9 | 5.9 ± 4.5 | 0 |
+| GreedyAgent | **67.0%** (67/24/9) | 13.0 ± 5.8 | 7.9 ± 5.6 | 0 |
 
-### V1 vs V3 Win Rate Comparison
+> **Note**: An earlier run (eval_v3_maskable_20260306_190731.json) showed a spurious 94% vs GreedyAgent due to a bug in `ValueBasedEvaluator.score_next_state` — it evaluated the **opponent's** hand instead of the agent's own hand after `action.execute()` switches `active_player_id`. Fixed in `modules/evaluators.py` by adding `get_actor_hand()`. See Task 9.10 and `project/experiments/reports/v3_validation_report.md` for details.
+
+### V1 vs V3 Win Rate Comparison (corrected)
 | Opponent | V1 (PPO, with fallback) | V3 (MaskablePPO) | Improvement |
 |----------|------------------------|------------------|-------------|
-| Random   | 51%                    | **95%**          | +44 pp      |
-| RandomAgent | 43%                 | **93%**          | +50 pp      |
-| GreedyAgent | 53%                 | **94%**          | +41 pp      |
+| Random   | 51%                    | **96%**          | +45 pp      |
+| RandomAgent | 43%                 | **90%**          | +47 pp      |
+| GreedyAgent | 53%                 | **67%**          | +14 pp      |
 
 Comparison plots: `project/experiments/reports/v3_figures/`
 - `v1_vs_v3_eval_reward.png` — training eval reward curves
 - `v3_eval_reward.png` — V3-only detailed curve
-- `v1_vs_v3_win_rates.png` — win rate bar chart
+- `v1_vs_v3_win_rates.png` — win rate bar chart (regenerated after bug fix)
 
 - [x] **Task 9.8**: V3 evaluation vs all opponents — complete (2026-03-06)
 - [x] **Task 9.9**: V1 vs V3 comparison report/plots generated
+- [x] **Task 9.10**: Bug found & fixed — `ValueBasedEvaluator` perspective error; corrected eval JSON: `eval_v3_maskable_20260306_193442.json`
 
 ---
 

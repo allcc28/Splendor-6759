@@ -223,19 +223,19 @@ Opponents: `RandomAgent`, `GreedyAgent`, `ValueNNAgent`, `MCTSAgent` (in `module
 
 ## Current Implementation Status
 
-**Completed (Phase 1-7)**:
+**Completed (Phase 1-9)**:
 - ✅ WSL2 + GPU environment (PyTorch 2.5.1 + CUDA 12.1, SB3 2.7.1)
 - ✅ 135-dim state vectorizer (`project/src/utils/state_vectorizer.py`)
-- ✅ SB3 Gym wrapper (`project/src/utils/splendor_gym_wrapper.py`)
-- ✅ PPO training script (`project/scripts/train_score_based.py`)
-- ✅ 1M timestep training completed (reward: -9.91 → +27.99)
-- ✅ Evaluation pipeline fixed (`project/scripts/evaluate_score_based_v3.py`)
-- ✅ Validated results: 51% vs Random, 43% vs RandomAgent, 53% vs GreedyAgent (with fallback)
-- ⚠️ Known limitation: No action masking → 40-60% of games have invalid actions
+- ✅ SB3 Gym wrapper with `action_masks()` (`project/src/utils/splendor_gym_wrapper.py`)
+- ✅ PPO V1 training (score-based, random opp): 51%/43%/53% win vs R/RA/GA
+- ✅ MaskablePPO V3 training (`project/scripts/train_maskable_ppo.py`): 1M steps, peak reward 67.8
+- ✅ V3 evaluation (corrected): **96%/90%/67%** win vs Random/RandomAgent/GreedyAgent
+- ✅ `evaluators.py` bug fixed: `get_actor_hand()` prevents wrong-player perspective in `simulate_next_state()`
+- ✅ Validation report: `project/experiments/reports/v3_validation_report.md`
 
 **Planned** (see [docs/plan.md](docs/plan.md)):
-- Phase 2: Event-based reward shaping with MaskablePPO (Weeks 4-7)
-- Phase 3: AlphaZero-style MCTS agent (Weeks 8-10)
+- Phase 10: Event-based reward shaping (deferred)
+- Phase 11: AlphaZero-style MCTS agent
 
 ## Common Pitfalls
 
@@ -249,13 +249,20 @@ Opponents: `RandomAgent`, `GreedyAgent`, `ValueNNAgent`, `MCTSAgent` (in `module
 8. **Sanity-check Splendor scores**: A legitimate game ends with 15+ points for the winner. If avg scores are < 5, the evaluation is broken
 9. **SplendorEnv.step() auto-switches player**: Do NOT manually alternate turns when using env.step() — action.execute() handles this internally
 10. **Action masking needed**: Discrete(200) without masking lets the model pick indices >= n_legal_actions. Use `sb3-contrib` `MaskablePPO` for next training run
+11. **`simulate_next_state()` perspective bug (FIXED)**: `action.execute(state_copy)` switches `state.active_player_id` to the opponent. Any evaluator calling `state.active_players_hand()` after simulation is evaluating the *wrong* player's hand. Use `get_actor_hand(next_state)` (in `modules/evaluators.py`) which does `list_of_players_hands[1 - active_player_id]`. This bug caused `GreedyAgentBoost` to score 1.1 pts (vs 5.1 for RandomAgent) in the first V3 eval run — fixed 2026-03-06.
+12. **Opponent sanity check**: If an opponent scores *less* than RandomAgent, the opponent evaluator is likely broken. Run `project/scripts/sanity_check_greedy.py` to verify opponent behavior.
 
 ## Quick Reference
 
 **Key Files**:
 - State vectorizer: [project/src/utils/state_vectorizer.py](project/src/utils/state_vectorizer.py)
-- Gym wrapper: [project/src/utils/splendor_gym_wrapper.py](project/src/utils/splendor_gym_wrapper.py)
-- Training script: [project/scripts/train_score_based.py](project/scripts/train_score_based.py)
+- Gym wrapper (with action_masks): [project/src/utils/splendor_gym_wrapper.py](project/src/utils/splendor_gym_wrapper.py)
+- V3 training script: [project/scripts/train_maskable_ppo.py](project/scripts/train_maskable_ppo.py)
+- V3 evaluator: [project/scripts/evaluate_maskable_ppo.py](project/scripts/evaluate_maskable_ppo.py)
+- State evaluator (fixed): [modules/evaluators.py](modules/evaluators.py)
+- Opponent sanity check: [project/scripts/sanity_check_greedy.py](project/scripts/sanity_check_greedy.py)
+- Comparison plots: [project/scripts/extract_tb_v3.py](project/scripts/extract_tb_v3.py)
+- Validation report: [project/experiments/reports/v3_validation_report.md](project/experiments/reports/v3_validation_report.md)
 - Progress tracker: [project/docs/development/PROGRESS.md](project/docs/development/PROGRESS.md)
 - Project plan: [docs/plan.md](docs/plan.md)
 

@@ -81,6 +81,24 @@ def get_active_hand(state):
     return None
 
 
+def get_actor_hand(next_state):
+    """
+    Return the hand of the player who JUST ACTED (not the now-active player).
+
+    IMPORTANT: action.execute(state) SWITCHES the active player in Splendor.
+    So after simulate_next_state(), active_player_id points to the OPPONENT,
+    not the agent who made the move.  ValueBasedEvaluator must use this
+    function instead of get_active_hand() to evaluate the correct player.
+    """
+    try:
+        pid_now = int(next_state.active_player_id)  # opponent is now active
+        actor_pid = 1 - pid_now                      # the one who just moved
+        return next_state.list_of_players_hands[actor_pid]
+    except Exception:
+        # Fallback: if state structure is unexpected, use active hand
+        return get_active_hand(next_state)
+
+
 def get_points(hand):
     """Victory points of the given hand."""
     if hand is None:
@@ -170,7 +188,9 @@ class ValueBasedEvaluator:
         self.w = normalize(weights if weights is not None else default)
 
     def score_next_state(self, next_state) -> float:
-        hand = get_active_hand(next_state)
+        # Use get_actor_hand: after action.execute(), active_player switches to
+        # the opponent, so get_active_hand() would evaluate the wrong player.
+        hand = get_actor_hand(next_state)
         points = get_points(hand)
         nobles_owned = get_owned_nobles(hand)
         engine = get_engine_strength(hand)
