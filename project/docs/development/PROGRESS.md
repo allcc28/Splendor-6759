@@ -55,21 +55,24 @@
 | Explained variance | 0.54 | -0.167 | 0.54+ |
 | Invalid actions/game | 40-60% | ~0 (but passive) | **0% by design** |
 
-### V3 Evaluation Results (2026-03-06, corrected after bug fix — see Task 9.10)
+### V3 Evaluation Results (canonical — 2026-03-06, `eval_v3_maskable_20260306_204610.json`)
 | Opponent | Win Rate | Agent Score | Opp Score | Invalid Actions |
-|----------|----------|-------------|-----------|-----------------|
-| Random (wrapper) | **96.0%** (96/0/4) | 15.7 ± 3.8 | 0.9 ± 1.4 | 0 |
-| RandomAgent | **90.0%** (90/7/3) | 15.0 ± 3.9 | 5.9 ± 4.5 | 0 |
-| GreedyAgent | **67.0%** (67/24/9) | 13.0 ± 5.8 | 7.9 ± 5.6 | 0 |
+|----------|----------|-------------|-----------|------------------|
+| Random (wrapper) | **95.0%** (95/2/3) | 15.6 ± 3.8 | 1.4 ± 2.6 | 0 |
+| RandomAgent | **91.0%** (91/4/5) | 15.4 ± 4.4 | 5.4 ± 4.0 | 0 |
+| GreedyAgent | **78.0%** (78/19/3) | 14.5 ± 4.4 | 8.1 ± 5.2 | 0 |
 
-> **Note**: An earlier run (eval_v3_maskable_20260306_190731.json) showed a spurious 94% vs GreedyAgent due to a bug in `ValueBasedEvaluator.score_next_state` — it evaluated the **opponent's** hand instead of the agent's own hand after `action.execute()` switches `active_player_id`. Fixed in `modules/evaluators.py` by adding `get_actor_hand()`. See Task 9.10 and `project/experiments/reports/v3_validation_report.md` for details.
+> **Two sequential bugs were found and fixed (2026-03-06)**:
+> 1. `ValueBasedEvaluator.score_next_state` evaluated the opponent’s hand instead of the agent’s after `action.execute()` switches `active_player_id`. Fixed via `get_actor_hand()` in `modules/evaluators.py` — this raised GreedyAgent result from ~~94%~~ → 67%.
+> 2. Eval script always assigned agent as player 0 (first-mover advantage). Fixed via `player_id = game_idx % 2` — this raised result from 67% → **78%**.
+> Superseded runs: `eval_v3_maskable_20260306_190731.json` (94%, retracted) and `eval_v3_maskable_20260306_193442.json` (67%, superseded). See `project/experiments/reports/v3_validation_report.md`.
 
-### V1 vs V3 Win Rate Comparison (corrected)
+### V1 vs V3 Win Rate Comparison (canonical)
 | Opponent | V1 (PPO, with fallback) | V3 (MaskablePPO) | Improvement |
 |----------|------------------------|------------------|-------------|
-| Random   | 51%                    | **96%**          | +45 pp      |
-| RandomAgent | 43%                 | **90%**          | +47 pp      |
-| GreedyAgent | 53%                 | **67%**          | +14 pp      |
+| Random   | 51%                    | **95%**          | +44 pp      |
+| RandomAgent | 43%                 | **91%**          | +48 pp      |
+| GreedyAgent | 53%                 | **78%**          | +25 pp      |
 
 Comparison plots: `project/experiments/reports/v3_figures/`
 - `v1_vs_v3_eval_reward.png` — training eval reward curves
@@ -78,7 +81,8 @@ Comparison plots: `project/experiments/reports/v3_figures/`
 
 - [x] **Task 9.8**: V3 evaluation vs all opponents — complete (2026-03-06)
 - [x] **Task 9.9**: V1 vs V3 comparison report/plots generated
-- [x] **Task 9.10**: Bug found & fixed — `ValueBasedEvaluator` perspective error; corrected eval JSON: `eval_v3_maskable_20260306_193442.json`
+- [x] **Task 9.10**: Bug found & fixed — `ValueBasedEvaluator` perspective error; intermediate eval JSON: `eval_v3_maskable_20260306_193442.json` (67%, superseded)
+- [x] **Task 9.11**: First-mover bias fixed (`game_idx % 2`); canonical eval JSON: `eval_v3_maskable_20260306_204610.json` (78% vs GreedyAgent)
 
 ---
 

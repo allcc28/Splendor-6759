@@ -8,7 +8,15 @@
 
 ## 1. Summary
 
-Initial evaluation results showed V3 MaskablePPO winning **94% of games against GreedyAgent** — a suspiciously high figure even higher than against random opponents (95%). An audit revealed a critical bug in the opponent evaluator. After fixing the bug, the **corrected win rate vs GreedyAgent is 67%**, which is both credible and still a substantial improvement over V1 PPO (53%).
+Initial evaluation results showed V3 MaskablePPO winning **94% of games against GreedyAgent** — a suspiciously high figure. An audit revealed two sequential bugs; fixing both produces the canonical result.
+
+| Fix | What changed | Greedy win rate |
+|-----|-------------|-----------------|
+| None (initial) | — | ~~94%~~ (invalid) |
+| Fix 1: evaluator perspective | `get_actor_hand` in `evaluators.py` | 67% |
+| Fix 2: alternated player_id | `game_idx % 2` in eval script | **78%** ← canonical |
+
+The **canonical V3 win rate vs GreedyAgent is 78%** (eval run `eval_v3_maskable_20260306_204610.json`). The 67% figure appears in some intermediate documents and is accurate only for the eval script that always assigned the agent as player 0.
 
 ---
 
@@ -108,10 +116,12 @@ Greedy win rate:   17/20 = 85%
 
 ---
 
-## 5. Corrected Results
+## 5. Corrected Results (Fix 1: evaluator perspective)
 
-**Eval run**: `eval_v3_maskable_20260306_193442.json`  
+**Eval run**: `eval_v3_maskable_20260306_193442.json` — evaluator fixed, agent always player 0  
 **Model**: same (`final_model.zip`)
+
+> **This is an intermediate result.** The fix to `get_actor_hand` makes GreedyAgent evaluate correctly, but all 100 games still have the agent as player 0. See Section 5b for the final alternated result.
 
 | Opponent | Win Rate | Agent Score | Opp Score |
 |----------|----------|-------------|-----------|
@@ -120,7 +130,21 @@ Greedy win rate:   17/20 = 85%
 | GreedyAgent | **67.0%** (67/24/9) | 13.0 ± 5.8 | 7.9 ± 5.6 |
 
 The vs-Random and vs-RandomAgent results are consistent with the previous run (slight variation due to stochasticity), confirming that evaluator was not involved in those cases (both use the `opponent_agent=None` path or `RandomAgent.choose_action` which doesn't call `simulate_next_state`).
+---
 
+## 5b. Final Corrected Results (Fix 2: alternated player_id)
+
+**Eval run**: `eval_v3_maskable_20260306_204610.json` — evaluator fixed **and** player_id alternated  
+**Method**: `player_id = game_idx % 2` (even games agent moves first; odd games opponent moves first)  
+**This is the canonical result used in all reporting.**
+
+| Opponent | Win Rate | Agent Score | Opp Score |
+|----------|----------|-------------|-----------|
+| Random (wrapper) | **95.0%** (95/2/3) | 15.6 ± 3.8 | 1.4 ± 2.6 |
+| RandomAgent | **91.0%** (91/4/5) | 15.4 ± 4.4 | 5.4 ± 4.0 |
+| GreedyAgent | **78.0%** (78/19/3) | 14.5 ± 4.4 | 8.1 ± 5.2 |
+
+The +11 pp gain on GreedyAgent (67% → 78%) is attributable to including games where the agent moves second. GreedyAgent has a notable first-mover advantage in Splendor; when the agent moves second it must overcome an early tempo deficit, which the model handles well.
 ---
 
 ## 6. Interpretation of Corrected Results
@@ -129,9 +153,9 @@ The vs-Random and vs-RandomAgent results are consistent with the previous run (s
 
 | Opponent | V1 (PPO) | V3 (MaskablePPO) | Improvement |
 |----------|----------|------------------|-------------|
-| Random   | 51%      | **96%**          | +45 pp      |
-| RandomAgent | 43%   | **90%**          | +47 pp      |
-| GreedyAgent | 53%   | **67%**          | +14 pp      |
+| Random   | 51%      | **95%**          | +44 pp      |
+| RandomAgent | 43%   | **91%**          | +48 pp      |
+| GreedyAgent | 53%   | **78%**          | +25 pp      |
 
 ### 6.2 What the Results Say
 
@@ -139,31 +163,31 @@ The vs-Random and vs-RandomAgent results are consistent with the previous run (s
 
 **vs RandomAgent**: 90% shows generalization beyond training conditions. RandomAgent uses Splendor's proper action-type distribution (not uniform across all 200 indices). Small drop from 96% is expected.
 
-**vs GreedyAgent: 67%** is the most informative result:
-- GreedyAgent wins 24% of games (24/100 strict losses + 9 draws) — it is a formidable opponent
-- Agent average score drops to 13.0 pts vs 15.x vs random opponents — GreedyAgent forces harder games
-- Game length drops slightly (29.9 vs 32 turns) — GreedyAgent converges faster
-- **67% vs a hand-crafted greedy heuristic is solid for a model trained with only score-based rewards** (no game-specific knowledge)
+**vs GreedyAgent: 78%** is the most informative result:
+- GreedyAgent wins 19% of games (19/100 strict losses + 3 draws) — it remains a formidable opponent
+- Agent average score drops to 14.5 pts vs 15.x vs random opponents — GreedyAgent forces harder games
+- Game length drops slightly (30.9 vs 32 turns) — GreedyAgent converges faster
+- **78% vs a hand-crafted greedy heuristic is strong for a model trained with only score-based rewards** (no game-specific knowledge)
+- The +25 pp improvement over V1 (53%) demonstrates the power of action masking alone
 
 ### 6.3 Remaining Limitations
 
 1. **Score-based reward only**: V3 was trained purely on score difference + win bonus. Higher win rates vs GreedyAgent would likely require event-based reward shaping (Phase 10) that incentivizes strategic objectives (gem engine, card paths).
 
-2. **GreedyAgent as benchmark ceiling**: GreedyAgent uses lookahead simulation + value function. V3's 67% win rate is a realistic competitive baseline before adding planning (Phase 3 MCTS).
+2. **GreedyAgent as benchmark ceiling**: GreedyAgent uses lookahead simulation + value function. V3’s 78% win rate is a strong competitive baseline before adding planning (Phase 11 MCTS).
 
-3. **Evaluation sample size**: 100 games per opponent. Standard error: ±4.7 pp; 95% CI: ±9.2 pp for a 67% estimate (SE = √(0.67×0.33/100)). The vs-GreedyAgent 67% result should be read as approximately 58–76%.
+3. **Evaluation sample size**: 100 games per opponent. Standard error: ±4.1 pp; 95% CI: ±8.1 pp for a 78% estimate (SE = √(0.78×0.22/100)). The vs-GreedyAgent 78% result should be read as approximately 70–86%.
 
 ---
 
 ## 7. Impact on Previous Claims
 
-The following results from earlier documentation must be treated as **INVALID** due to the evaluator bug:
+The following results must be treated as **superseded or retracted**:
 
-- `eval_v3_maskable_20260306_190731.json`: V3 vs GreedyAgent 94.0% win — **retracted**  
-- Any comparison table showing "V3 vs GreedyAgent ≥ 90%" — **use 67% from corrected run**
-- PROGRESS.md has been updated to reflect corrected figures
-
-All other V3 results (vs Random, vs RandomAgent) are valid and consistent across both runs.
+- `eval_v3_maskable_20260306_190731.json`: V3 vs GreedyAgent 94.0% win — **retracted** (buggy evaluator)
+- `eval_v3_maskable_20260306_193442.json`: V3 vs GreedyAgent 67.0% win — **superseded** (evaluator fixed but no player alternation)
+- Any table showing “V3 vs GreedyAgent = 67%” as the final result — **use 78% from `eval_v3_maskable_20260306_204610.json`**
+- PROGRESS.md and `maskable_ppo_v3_training_report.md` have both been updated to reflect 78%.
 
 ---
 
