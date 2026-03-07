@@ -28,8 +28,8 @@ Usage:
 
 import sys
 import os
-sys.path.insert(0, "modules")
-sys.path.insert(0, "project/src")
+sys.path.insert(0, "project/src")  # lower priority: utils/
+sys.path.insert(0, "modules")      # higher priority: agents/
 
 import argparse
 import yaml
