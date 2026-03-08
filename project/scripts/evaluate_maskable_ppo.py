@@ -188,15 +188,24 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="project/experiments/evaluation/maskable_ppo_v3_eval",
+        default="project/experiments/evaluation/maskable_ppo_eval",
+        help="Directory to write eval JSON into",
+    )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default="",
+        help="Short label for this run (e.g. v3, v4a). Embedded in filename and JSON.",
     )
     args = parser.parse_args()
 
+    tag_label = args.tag if args.tag else "(untagged)"
     print("=" * 80)
-    print("MaskablePPO v3 Agent Evaluation")
+    print(f"MaskablePPO Agent Evaluation  [{tag_label}]")
     print("=" * 80)
-    print(f"Model:  {args.model}")
-    print(f"Games:  {args.games} per opponent")
+    print(f"Model:   {args.model}")
+    print(f"Tag:     {tag_label}")
+    print(f"Games:   {args.games} per opponent")
     print(f"Masking: ON (no invalid actions possible)")
     print()
 
@@ -215,7 +224,7 @@ def main():
     # Label: "Random (wrapper)" to distinguish from "RandomAgent" below.
     stats = evaluate_vs_opponent(
         model, opponent_agent=None, num_games=args.games,
-        max_turns=args.max_turns, desc="v3 vs Random",
+        max_turns=args.max_turns, desc=f"{tag_label} vs Random",
     )
     all_results["vs_random_wrapper"] = stats
     print_results("Random (wrapper)", stats)
@@ -224,7 +233,7 @@ def main():
     random_agent = RandomAgent(distribution="uniform_on_types")
     stats = evaluate_vs_opponent(
         model, opponent_agent=random_agent, num_games=args.games,
-        max_turns=args.max_turns, desc="v3 vs RandomAgent",
+        max_turns=args.max_turns, desc=f"{tag_label} vs RandomAgent",
     )
     all_results["vs_random_agent"] = stats
     print_results("RandomAgent", stats)
@@ -233,16 +242,29 @@ def main():
     greedy_agent = GreedyAgentBoost(name="Greedy", mode="value")
     stats = evaluate_vs_opponent(
         model, opponent_agent=greedy_agent, num_games=args.games,
-        max_turns=args.max_turns, desc="v3 vs GreedyAgent",
+        max_turns=args.max_turns, desc=f"{tag_label} vs GreedyAgent",
     )
     all_results["vs_greedy"] = stats
     print_results("GreedyAgent", stats)
 
-    # Save
+    # Save — embed provenance so results can always be traced back to a model
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_file = output_dir / f"eval_v3_maskable_{timestamp}.json"
+    tag_part = f"_{args.tag}" if args.tag else ""
+    results_file = output_dir / f"eval_maskable{tag_part}_{timestamp}.json"
+    model_path_abs = str(Path(args.model).resolve())
+    output_payload = {
+        "_meta": {
+            "model_path": args.model,
+            "model_path_abs": model_path_abs,
+            "eval_tag": args.tag or "(unset)",
+            "timestamp": timestamp,
+            "games_per_opponent": args.games,
+            "max_turns": args.max_turns,
+        },
+        **all_results,
+    }
     with open(results_file, "w") as f:
-        json.dump(all_results, f, indent=2, default=str)
+        json.dump(output_payload, f, indent=2, default=str)
 
     print(f"\n{'=' * 80}")
     print("Summary")

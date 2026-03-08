@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 9 Complete ✅ — MaskablePPO (V3) trained & evaluated
+**Current Phase**: Phase 10 Complete ✅ — Score-Based Ceiling Hunt concluded; V4a best_model is current best (82% vs Greedy, n=100)
 
 ---
 
@@ -95,9 +95,9 @@ Comparison plots: `project/experiments/reports/v3_figures/`
 
 | Run | Config | Key change vs V3 | Hypothesis | Status |
 |-----|--------|-----------------|------------|--------|
-| V4a | `maskable_ppo_v4a_ent_lr.yaml` | `ent_coef` 0.005→0.01, `lr` 3e-4→1e-4 | More exploration, slower convergence | ⏳ Queued |
-| V4b | `maskable_ppo_v4b_rollout_curriculum.yaml` | `n_steps` 2048→4096, greedy opp last 300K | Longer credit assignment + hard opponent fine-tune | ⏳ Queued |
-| V4c | `maskable_ppo_v4c_curriculum.yaml` | 3-stage curriculum: none→random→greedy | Smooth difficulty ramp | ⏳ Queued |
+| V4a | `maskable_ppo_v4a_ent_lr.yaml` | `ent_coef` 0.005→0.01, `lr` 3e-4→1e-4 | More exploration, slower convergence | ✅ Done — 82% vs Greedy |
+| V4b | `maskable_ppo_v4b_rollout_curriculum.yaml` | `n_steps` 2048→4096, greedy opp last 300K | Longer credit assignment + hard opponent fine-tune | ⏳ Skipped (V4c ran instead) |
+| V4c | `maskable_ppo_v4c_curriculum.yaml` | 3-stage curriculum: none→random→greedy | Smooth difficulty ramp | ✅ Done — 73% vs Greedy (regression) |
 
 ### Evaluation Protocol
 - After each run: `python project/scripts/evaluate_maskable_ppo.py --games 100`
@@ -138,7 +138,7 @@ python project/scripts/train_curriculum.py \
 **Best V4 improvement = +4 pp (V4a, 78% → 82%) < threshold 5 pp → STOP score-based experiments.**
 
 - **New canonical model: V4a best_model** (`maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model`, eval `20260307_090003.json`)
-- Score-based reward has reached its ceiling with this architecture
+- Score-based reward shows no further significant improvement with this architecture (n=100 eval; CIs overlap between 78% and 82%)
 - **Pivot to Phase 11: Event-based reward shaping**
 
 ### Final Score-Based Leaderboard
@@ -152,7 +152,7 @@ python project/scripts/train_curriculum.py \
 
 ## 📅 Phase 11: Event-Based Reward Shaping (NEXT)
 
-Score-based ceiling confirmed at **82% vs GreedyAgent** (V4a). Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
+Best observed score-based result: **82% vs GreedyAgent** (V4a, n=100). The +4 pp gain over V3 is below the 5 pp stop-loss threshold and, with n=100, is not statistically conclusive (z≈0.71, overlapping CIs). Treating this as the practical ceiling for the current architecture before pivoting to event-based rewards. Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks
@@ -572,5 +572,5 @@ project/experiments/reports/
 
 ---
 
-**Last Updated**: 2026-02-26 (Session 7 — Experiment 1 Evaluation Complete)  
-**Next Steps**: Implement MaskablePPO with Action Masking (Phase 2 priority). V1 remains the baseline.
+**Last Updated**: 2026-03-08 (Phase 10 concluded — V4a 82% best observed; V4c 73% regression; stop-loss triggered; pivot to Phase 11)  
+**Next Steps**: Phase 11 — Event-based reward shaping. Design `event_reward_calculator.py`, add `reward_mode: event_based` to wrapper, train V5.
