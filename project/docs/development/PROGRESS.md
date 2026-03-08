@@ -128,17 +128,31 @@ python project/scripts/train_curriculum.py \
 | Run | vs Random | vs RandomAgent | vs Greedy | Δ vs V3 Greedy | Decision |
 |-----|-----------|---------------|-----------|----------------|----------|
 | V3 (baseline) | 95% | 91% | **78%** | — | canonical |
-| V4a (best@860K) | 90% | 89% | **82%** | **+4 pp** | ✅ improvement, 1pp below stop-loss |
-| V4b | | | | | |
-| V4c | | | | | |
+| V4a (best@860K) | 90% | 89% | **82%** | **+4 pp** | ✅ new best model |
+| V4b | — | — | — | — | skipped (V4c ran instead) |
+| V4c (curriculum best, Stage3) | 93% | 89% | **73%** | **−5 pp** | ❌ regression |
 
-> **V4a notes** (`maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model`, eval `20260307_090003.json`):  
-> Higher `ent_coef` (0.01) + lower `lr` (1e-4) improved vs-Greedy by **+4 pp** (78→82%) but traded off vs-Random (95→90%) and vs-RandomAgent (91→89%). This is expected: more exploration discovers better greedy-countering strategies at the cost of random-opponent polish.  
-> Stop-loss threshold: 83% — V4a reaches 82%, 1 pp short. **Recommend running V4c (curriculum) before deciding.**
+> **V4c analysis**: Curriculum hurt vs Greedy. Stage 3 fine-tuning (200K steps vs Greedy) caused catastrophic forgetting of the policy learned in Stages 1–2. The 200K steps were not enough to converge against Greedy, and the model lost its stable Random-opponent performance in the process.
+
+### 🛑 Stop-Loss Decision
+**Best V4 improvement = +4 pp (V4a, 78% → 82%) < threshold 5 pp → STOP score-based experiments.**
+
+- **New canonical model: V4a best_model** (`maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model`, eval `20260307_090003.json`)
+- Score-based reward has reached its ceiling with this architecture
+- **Pivot to Phase 11: Event-based reward shaping**
+
+### Final Score-Based Leaderboard
+| Model | vs Random | vs RandomAgent | vs Greedy |
+|-------|-----------|---------------|-----------|
+| V1 PPO | 51% | 43% | 53% |
+| V3 MaskablePPO | 95% | 91% | 78% |
+| **V4a MaskablePPO** | **90%** | **89%** | **82%** |
 
 ---
 
-## 📅 Phase 11 (Event-based rewards): pending Phase 10 stop-loss decision
+## 📅 Phase 11: Event-Based Reward Shaping (NEXT)
+
+Score-based ceiling confirmed at **82% vs GreedyAgent** (V4a). Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks
