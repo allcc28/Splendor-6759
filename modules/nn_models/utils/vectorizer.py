@@ -115,6 +115,37 @@ class Vectorizer:
             output_list_of_tensors.append(concatated)
 
         return output_list_of_tensors
+    
+    def get_gem_gap_features(self, state: State):
+        """
+        Calculate how many gems the current player needs to purchase each of the 12 cards on the field
+        return: 12 card * 5color = 60 dim
+        """
+        player = state.active_players_hand()
+        # 1.Get your currently held gems + existing card discounts.
+        current_assets = player.gems_possessed.gems_dict.copy()
+        discounts = player.discount().gems_dict
+        
+        for color in current_assets:
+            if color != GemColor.GOLD:
+                current_assets[color] += discounts.get(color, 0)
+
+        gaps = []
+        # 2. Iterate through the cards
+        for card in state.board.cards_on_board:
+            card_cost = card.price.gems_dict
+            for color in [GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK]:
+                cost = card_cost.get(color, 0)
+                # Calculate the gap: max(0, Cost - Assets - Gems)
+                # Complex substitutions for gems are not calculated here; only the basic gap is considered.
+                gap = max(0, cost - current_assets.get(color, 0))
+                gaps.append(gap)
+        
+        # If there are fewer than 12 cards on the field, fill with 0
+        while len(gaps) < 60:
+            gaps.append(0.0)
+            
+        return np.array(gaps, dtype=np.float32)
 
 
 # xxx = Vectorizer().many_states_to_input([state_3, state_3])
