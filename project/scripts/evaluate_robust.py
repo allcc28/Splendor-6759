@@ -4,16 +4,20 @@ Robust evaluation for MaskablePPO agent.
 Runs multiple independent batches of games (each batch uses a different
 random seed) and reports:
   - Mean ± std win-rate across batches  (variance estimate)
-  - Wilson score 95% CI on the pooled total  (frequency CI)
+  - Wilson score 95% CI on the pooled total  (frequentist CI)
+  - Auto-generated Markdown report alongside the JSON
 
 Usage:
     python project/scripts/evaluate_robust.py
-    python project/scripts/evaluate_robust.py --model <path> --games 500 --batches 5
+    python project/scripts/evaluate_robust.py \\
+        --model project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model \\
+        --tag v4a --games 1000 --batches 10
 
 Defaults:
-    --games   500   (total games per opponent, split evenly across batches)
-    --batches   5   (independent batches → variance estimate across seeds)
-    --model       project/logs/maskable_ppo_score_v3_20260303_183435/final_model
+    --model   project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model
+    --tag     v4a
+    --games   1000  (total games per opponent, split evenly across batches)
+    --batches   10  (independent batches × 100 games each → variance estimate across seeds)
 """
 
 import sys
@@ -183,27 +187,35 @@ def evaluate_robust(model, opponent_agent, total_games: int, n_batches: int, lab
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Robust evaluation for MaskablePPO v3 agent")
+    parser = argparse.ArgumentParser(description="Robust evaluation for MaskablePPO agent")
     parser.add_argument(
         "--model",
         type=str,
-        default="project/logs/maskable_ppo_score_v3_20260303_183435/final_model",
+        default="project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model",
         help="Path to trained MaskablePPO model (without .zip)",
     )
-    parser.add_argument("--games",   type=int, default=500, help="Total games per opponent")
-    parser.add_argument("--batches", type=int, default=5,   help="Number of independent batches (seeds)")
+    parser.add_argument("--games",   type=int, default=1000, help="Total games per opponent")
+    parser.add_argument("--batches", type=int, default=10,   help="Number of independent batches (seeds)")
     parser.add_argument(
         "--output",
         type=str,
         default="project/experiments/evaluation/robust",
     )
+    parser.add_argument(
+        "--tag",
+        type=str,
+        default="v4a",
+        help="Short label for this run (e.g. v3, v4a). Embedded in filenames and JSON.",
+    )
     args = parser.parse_args()
 
     games_per_batch = args.games // args.batches
+    tag_label = args.tag if args.tag else "(untagged)"
     print("=" * 80)
-    print("MaskablePPO v3 — Robust Evaluation")
+    print(f"MaskablePPO Robust Evaluation  [{tag_label}]")
     print("=" * 80)
     print(f"Model:   {args.model}")
+    print(f"Tag:     {tag_label}")
     print(f"Games:   {args.games} per opponent  ({args.batches} batches × {games_per_batch})")
     print(f"Output:  {args.output}")
     print()
@@ -229,10 +241,10 @@ def main():
         all_results[label] = result
 
     # -----------------------------------------------------------------------
-    # Summary table
+    # Console summary table
     # -----------------------------------------------------------------------
     print(f"\n{'=' * 80}")
-    print("Robust Evaluation Summary")
+    print(f"Robust Evaluation Summary  [{tag_label}]")
     print(f"{'=' * 80}")
     header = f"  {'Opponent':<22}  {'Win%':>6}  {'±Batch':>7}  {'95% CI':>18}  {'Agent':>6}  {'Opp':>6}"
     print(header)
@@ -253,15 +265,124 @@ def main():
     print(f"  • 95% CI = Wilson score confidence interval (frequentist)")
 
     # -----------------------------------------------------------------------
-    # Save JSON
+    # Save JSON with provenance metadata
     # -----------------------------------------------------------------------
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_file = Path(args.output) / f"robust_eval_{timestamp}.json"
-    with open(out_file, "w") as f:
-        json.dump(all_results, f, indent=2, default=str)
+    tag_part  = f"_{args.tag}" if args.tag else ""
+    out_dir   = Path(args.output)
 
-    print(f"\n✓ Saved → {out_file}")
+    json_file = out_dir / f"robust_eval{tag_part}_{timestamp}.json"
+    payload = {
+        "_meta": {
+            "model_path":     args.model,
+            "model_path_abs": str(Path(args.model).resolve()),
+            "eval_tag":       tag_label,
+            "timestamp":      timestamp,
+            "games_per_opponent": args.games,
+            "batches":        args.batches,
+            "games_per_batch": games_per_batch,
+        },
+        **all_results,
+    }
+    with open(json_file, "w") as f:
+        json.dump(payload, f, indent=2, default=str)
+    print(f"\n✓ JSON  → {json_file}")
+
+    # -----------------------------------------------------------------------
+    # Generate Markdown report
+    # -----------------------------------------------------------------------
+    report_file = out_dir / f"robust_eval{tag_part}_{timestamp}_report.md"
+    _write_markdown_report(report_file, all_results, args, tag_label, timestamp, games_per_batch)
+    print(f"✓ Report → {report_file}")
     print("=" * 80)
+
+
+def _write_markdown_report(path, results, args, tag_label, timestamp, games_per_batch):
+    """Write a self-contained Markdown evaluation report."""
+    lines = []
+
+    lines += [
+        f"# Robust Evaluation Report — {tag_label}",
+        "",
+        f"**Date**: {timestamp[:4]}-{timestamp[4:6]}-{timestamp[6:8]}  ",
+        f"**Model**: `{args.model}`  ",
+        f"**Protocol**: {args.games} games per opponent, {args.batches} independent batches "
+        f"({games_per_batch} games/batch), alternating first-mover  ",
+        f"**Action masking**: ON — no invalid actions sampled  ",
+        "",
+        "---",
+        "",
+        "## Win Rate Summary",
+        "",
+        "| Opponent | Win% (pooled) | ±std (batches) | 95% Wilson CI | W / L / D | Agent avg score | Opp avg score |",
+        "|----------|:-------------:|:--------------:|:-------------:|:---------:|:---------------:|:-------------:|",
+    ]
+
+    for label, r in results.items():
+        ci = f"[{r['wilson_ci_95_lo']:.1f}%, {r['wilson_ci_95_hi']:.1f}%]"
+        wld = f"{r['total_wins']} / {r['total_losses']} / {r['total_draws']}"
+        lines.append(
+            f"| {label} | **{r['win_rate_pooled']:.1f}%** | "
+            f"±{r['win_rate_std_across_batches']:.1f}% | {ci} | {wld} | "
+            f"{r['agent_score_mean']:.1f} | {r['opp_score_mean']:.1f} |"
+        )
+
+    lines += [
+        "",
+        "---",
+        "",
+        "## Batch-Level Breakdown",
+        "",
+    ]
+
+    for label, r in results.items():
+        lines += [
+            f"### vs {label}",
+            "",
+            f"| Batch | Win% | Agent avg | Opp avg |",
+            f"|-------|:----:|:---------:|:-------:|",
+        ]
+        for i, b in enumerate(r["batch_results"]):
+            lines.append(
+                f"| {i+1} | {b['win_rate']:.1f}% | {b['agent_score_mean']:.1f} | {b['opp_score_mean']:.1f} |"
+            )
+        lines += [
+            f"| **Pooled** | **{r['win_rate_pooled']:.1f}%** | "
+            f"**{r['agent_score_mean']:.1f}** | **{r['opp_score_mean']:.1f}** |",
+            "",
+        ]
+
+    lines += [
+        "---",
+        "",
+        "## Statistical Notes",
+        "",
+        f"- **n = {args.games}** games per opponent. "
+        "At this sample size the Wilson 95% CI half-width is roughly ±1.6 pp for win rates near 80%.",
+        "- **±std (batches)** measures run-to-run variance across independent random seeds — "
+        "a proxy for how stable the win rate is across differently-seeded game sequences.",
+        "- Results are reported as pooled win rates (all batches combined) and independently "
+        "per batch to show consistency.",
+        "- A game is a **win** when `info['agent_won'] == True` or (if not set) `agent_score > opp_score`; "
+        "**draw** when scores are equal; **loss** otherwise.",
+        "",
+        "## Comparison to Previous Benchmarks",
+        "",
+        "| Model | Eval protocol | vs Random | vs RandomAgent | vs Greedy |",
+        "|-------|--------------|:---------:|:--------------:|:---------:|",
+        "| V3 MaskablePPO | n=100, single run | 95% | 91% | 78% |",
+        "| V4a MaskablePPO (n=100) | n=100, single run | 90% | 89% | 82% |",
+        f"| **{tag_label} MaskablePPO (n={args.games})** | n={args.games}, {args.batches}-batch Wilson CI | "
+        f"**{results.get('Random (wrapper)', {}).get('win_rate_pooled', 0):.1f}%** | "
+        f"**{results.get('RandomAgent', {}).get('win_rate_pooled', 0):.1f}%** | "
+        f"**{results.get('GreedyAgent', {}).get('win_rate_pooled', 0):.1f}%** |",
+        "",
+        "---",
+        "",
+        f"*Generated by `project/scripts/evaluate_robust.py` — {timestamp}*",
+    ]
+
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":
