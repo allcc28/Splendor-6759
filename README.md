@@ -12,13 +12,17 @@ The objective is to study the impact of reward shaping (Score-based vs. Event-ba
 
 ## 📂 Repository Structure
 
-### 🛠️ Core Development (`project/`)
+### 🛠️ Core Development (`project/` `project_event_based/`)
 - `project/src/utils/`: SB3 Gym Wrapper, State Vectorizer (135-dim), and utilities.
 - `project/configs/`: YAML configurations for training (PPO, Masking, etc.).
 - `project/scripts/`: Pipelines for training, evaluation, and plotting.
 - `project/experiments/`: Reports, evaluation results, and training figures.
 - `project/logs/`: TensorBoard logs and model checkpoints.
 - `project/docs/development/`: Progress trackers, ADRs, and session logs.
+
+- `project_event_based/src/utils/`: SB3 Gym Wrapper, State Vectorizer (135-dim), and utilities.
+- `project_event_based/configs/`: YAML configurations for training (PPO, Masking, etc.).
+- `project_event_based/scripts/`: Pipelines for training, evaluation, and plotting.
 
 ### 📚 Documentation (`docs/`)
 - `plan.md`: The 10-week execution roadmap.
@@ -49,7 +53,11 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 pip install stable-baselines3[extra] gymnasium pyyaml tensorboard pytest
 pip install sb3-contrib  # Required for MaskablePPO
 ```
-
+or
+```bash
+conda activate splendor
+pip install -r requirements.txt
+```
 ## 🎮 How to Use
 
 ### Training
@@ -58,11 +66,17 @@ To train the baseline Score-based agent:
 python project/scripts/train_score_based.py
 ```
 
+To train the baseline Event-based agent:
+notebook: project_event_based/notebook
+
+
 ### Evaluation
 To evaluate a trained model against different opponents:
 ```bash
 python project/scripts/evaluate_score_based_v3.py --model path/to/model.zip --games 100
 ```
+To evaluate a trained model against different opponents:
+notebook: project_event_based/notebook
 
 ### Monitoring
 Launch TensorBoard from within WSL:
