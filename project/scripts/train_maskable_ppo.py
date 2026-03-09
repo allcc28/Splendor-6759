@@ -41,6 +41,8 @@ except ImportError:
     from stable_baselines3.common.callbacks import EvalCallback
     USING_MASKABLE_EVAL = False
 
+from utils.event_reward_wrapper import event_shaping_enabled, maybe_wrap_with_event_shaping
+from utils.event_stats_callback import EventStatsCallback
 from utils.splendor_gym_wrapper import make_splendor_env
 from agents.random_agent import RandomAgent
 
@@ -93,6 +95,7 @@ def create_env(config: dict, monitor_dir: str = None):
         opponent_agent=opponent,
         max_turns=env_config["max_turns"],
     )
+    env = maybe_wrap_with_event_shaping(env, config)
     env = ActionMasker(env, _mask_fn)       # ← exposes action_masks() to SB3
     if monitor_dir:
         os.makedirs(monitor_dir, exist_ok=True)
@@ -109,6 +112,7 @@ def create_eval_env(config: dict):
         opponent_agent=opponent,
         max_turns=env_config["max_turns"],
     )
+    env = maybe_wrap_with_event_shaping(env, config)
     return ActionMasker(env, _mask_fn)
 
 
@@ -190,6 +194,15 @@ def setup_callbacks(config: dict, log_path: str, eval_env) -> CallbackList:
         )
 
     callbacks.append(eval_cb)
+    if event_shaping_enabled(config):
+        callbacks.append(
+            EventStatsCallback(
+                log_freq=config.get("event_shaping", {}).get(
+                    "log_freq",
+                    config["training"]["eval_freq"],
+                )
+            )
+        )
     return CallbackList(callbacks)
 
 

@@ -229,30 +229,59 @@ class SplendorStateVectorizer:
         Cards ordered by row: [CHEAP×4, MEDIUM×4, EXPENSIVE×4]
         Empty positions filled with zeros.
         """
-        # Sort cards by row
-        cards_by_row = {row: [] for row in self.CARD_ROWS}
-        for card in cards_on_board:
-            cards_by_row[card.row].append(card)
-        
-        # Sort within each row by ID for determinism
-        for row in self.CARD_ROWS:
-            cards_by_row[row] = sorted(cards_by_row[row], key=lambda c: c.id)
-        
-        # Create card vectors (exactly 12 positions: 4 per row)
         all_card_vectors = []
-        for row in self.CARD_ROWS:
-            row_cards = cards_by_row[row][:4]  # Take up to 4 cards
-            for i in range(4):
-                if i < len(row_cards):
-                    card_vec = self._vectorize_single_card_simplified(row_cards[i], active_hand)
-                    all_card_vectors.append(card_vec)
-                else:
-                    all_card_vectors.append(np.zeros(6))  # Empty position
+        for card in self._sorted_board_cards(cards_on_board):
+            if card is None:
+                all_card_vectors.append(np.zeros(6))
+            else:
+                card_vec = self._vectorize_single_card_simplified(card, active_hand)
+                all_card_vectors.append(card_vec)
         
         # Concatenate all card vectors
         result = np.concatenate(all_card_vectors)
         assert result.shape == (72,), \
             f"Expected 72 dims, got {result.shape}. Card vectors: {len(all_card_vectors)}"
+        return result
+
+    def _sorted_board_cards(self, cards_on_board) -> list[Optional[Card]]:
+        """Return the 12 visible board-card slots in deterministic row-major order."""
+        cards_by_row = {row: [] for row in self.CARD_ROWS}
+        for card in cards_on_board:
+            cards_by_row[card.row].append(card)
+
+        ordered_cards: list[Optional[Card]] = []
+        for row in self.CARD_ROWS:
+            row_cards = sorted(cards_by_row[row], key=lambda c: c.id)[:4]
+            ordered_cards.extend(row_cards)
+            ordered_cards.extend([None] * (4 - len(row_cards)))
+
+        assert len(ordered_cards) == 12
+        return ordered_cards
+
+    def get_gem_gap_features(self, state: State, player_id: int) -> np.ndarray:
+        """
+        Return a 60-dim feature vector describing how many gems are still needed
+        to buy each visible board card after discounts, normalized to [0, 1].
+        """
+        hand = state.list_of_players_hands[player_id]
+        discount = hand.discount()
+        gap_features = []
+
+        for card in self._sorted_board_cards(state.board.cards_on_board):
+            if card is None:
+                gap_features.extend([0.0] * len(self.DISCOUNT_COLORS))
+                continue
+
+            discounted_price = card.price % discount
+            for color in self.DISCOUNT_COLORS:
+                gap = max(
+                    0,
+                    discounted_price.value(color) - hand.gems_possessed.value(color),
+                )
+                gap_features.append(gap / self.MAX_CARD_PRICE)
+
+        result = np.array(gap_features, dtype=np.float32)
+        assert result.shape == (60,), f"Expected 60 gap dims, got {result.shape}"
         return result
     
     def _vectorize_single_card_simplified(self, card: Card, active_hand) -> np.ndarray:

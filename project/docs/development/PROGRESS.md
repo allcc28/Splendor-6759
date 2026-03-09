@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 10 Complete ✅ — Score-Based Ceiling Hunt concluded; V4a best_model is current best (**75.8% vs Greedy, n=1000**, Wilson CI [73.0%, 78.4%])
+**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) trained & evaluated (**80.0% vs Greedy, n=100**); V4a remains n=1000 authoritative baseline (75.8%)
 
 ---
 
@@ -161,9 +161,62 @@ python project/scripts/train_curriculum.py \
 
 ---
 
-## 📅 Phase 11: Event-Based Reward Shaping (NEXT)
+## 📅 Phase 11: Event-Based Reward Shaping 🔄
 
-Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson 95% CI [73.0%, 78.4%]). The n=100 quick eval had shown 82%, but the 1000-game robust evaluation confirms the true win rate is ~76%. This is a +0 pp improvement over V3's 78% baseline within CI, confirming the 5 pp stop-loss threshold was correctly triggered. Treating this as the practical ceiling for the current architecture before pivoting to event-based rewards. Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
+Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson 95% CI [73.0%, 78.4%]). The n=100 quick eval had shown 82%, but the 1000-game robust evaluation confirms the true win rate is ~76%. This is a +0 pp improvement over V3's 78% baseline within CI, confirming the 5 pp stop-loss threshold was correctly triggered. Treating this as the practical ceiling for the current architecture before pivoting to event-based rewards.
+
+### V5 — Event-Based Agent (maskable_ppo_event_v1, 2026-03-09)
+
+**Architecture**: `SplendorGymWrapper` → `EventRewardWrapper` → `ActionMasker`  
+**Observation space**: 204-dim (135 base + 60 gem-gap features + 9 last-event flags)  
+**Reward**: `score_progress` + event reward (dot product of 9-event vector × weights)  
+**9 Events & Weights**: take_gems(0.01), buy_card(10.0), reserve_card(0.05), score_up(5.0), reach_15(25.0), scarcity_take(0.20), block_reserve(1.0), buy_reserved(2.0), engine_spike(5.0)  
+**Training**: 1M steps vs RandomAgent, ~4 hours (RTX 4090, ~69 fps)  
+**Model**: `project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model`  
+**Config**: `project/configs/training/maskable_ppo_event_v1.yaml`
+
+#### V5 Training Metrics (final)
+| Metric | Value |
+|--------|-------|
+| Total timesteps | 1,000,000 |
+| Final eval reward | 411.58 ± 30.60 |
+| explained_variance | 0.818 |
+| buy_card rate (event_1) | 68.3% |
+| engine_spike rate (event_8) | 19.2% |
+| reserve_card rate (event_2) | 0% (negative weight discouraged this) |
+| fps | ~69 |
+
+#### V5 Evaluation Results (n=100, 2026-03-09)
+| Opponent | Win Rate | W/L/D | Agent Score | Opp Score |
+|----------|----------|-------|-------------|----------|
+| Random (wrapper) | **95.0%** | 95/0/5 | 15.5 ± 3.9 | 0.8 ± 1.4 |
+| RandomAgent | **82.0%** | 82/7/11 | 14.0 ± 5.4 | 5.3 ± 4.2 |
+| GreedyAgent | **80.0%** | 80/18/2 | 14.7 ± 4.5 | 7.7 ± 4.8 |
+
+#### V4a vs V5 Comparison (n=100)
+| Opponent | V4a (score-based) | V5 (event-based) | Δ |
+|----------|:-----------------:|:----------------:|:---:|
+| Random | 90% | 95% | +5 pp |
+| RandomAgent | 89% | 82% | −7 pp† |
+| GreedyAgent | 82% | **80%** | −2 pp‡ |
+
+> †‡ Both deltas are within n=100 noise range (±8 pp). The vs-Greedy result is within CI and shows event shaping at minimum matches V4a at n=100. Authoritative comparison requires a 1000-game robust eval.
+
+#### Key Observations
+- **buy_card rate 68% → engine_spike 19%**: Agent learned to chain card purchases effectively
+- **reserve_card = 0%**: Negative weight (-0.01 → tuned to 0.05 but still low) suppressed reservation. May indicate card reservation is undervalued in current weight set
+- **block_reserve = 0**, **buy_reserved = 0**: Agent never triggers blocking/using-reserved events — likely because it never reserves
+- Event reward contributes ~9.65 per episode vs base reward ~1.84: event shaping dominates reward signal
+
+#### Implementation Files (NEW in Phase 11)
+- `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
+- `project/src/utils/event_detector.py` — 9-event detection with `StateSnapshot`, `PlayerSnapshot`
+- `project/src/reward/event_based_reward.py` — `DEFAULT_EVENT_WEIGHTS`, `compute_event_reward()`
+- `project/src/utils/event_stats_callback.py` — TensorBoard event rate logging
+- `project/src/utils/state_vectorizer.py` — Added `get_gem_gap_features()` (60-dim)
+- `project/src/utils/splendor_gym_wrapper.py` — Added `last_post_agent_snapshot` (pre-opponent state)
+- `project/scripts/evaluate_maskable_ppo.py` — Added `--config`, `load_eval_config()`, `validate_observation_shape()`, `_get_legal_actions()`
+- `project/configs/training/maskable_ppo_event_v1.yaml` — V5 training config
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks

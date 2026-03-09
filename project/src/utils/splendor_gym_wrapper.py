@@ -18,6 +18,7 @@ from typing import Tuple, Dict, Any, Optional
 
 from gym_splendor_code.envs.splendor import SplendorEnv
 from gym_splendor_code.envs.mechanics.action import Action
+from .event_detector import capture_state_snapshot
 from .state_vectorizer import SplendorStateVectorizer
 
 
@@ -71,6 +72,7 @@ class SplendorGymWrapper(gym.Env):
         # State tracking
         self.turn_count = 0
         self.prev_score = 0
+        self.last_post_agent_snapshot = None
         
         # Define observation space: 135-dim continuous vector
         self.observation_space = spaces.Box(
@@ -109,6 +111,7 @@ class SplendorGymWrapper(gym.Env):
         # Reset tracking
         self.turn_count = 0
         self.prev_score = 0
+        self.last_post_agent_snapshot = None
         
         # If learning agent is not player 0, let opponent move first
         if self.player_id == 1:
@@ -141,6 +144,8 @@ class SplendorGymWrapper(gym.Env):
             truncated: Whether episode was cut off
             info: Metadata dictionary
         """
+        self.last_post_agent_snapshot = None
+
         # Validate action
         if action_idx >= len(self.cached_legal_actions):
             # Invalid action - heavily penalize and terminate
@@ -169,6 +174,10 @@ class SplendorGymWrapper(gym.Env):
         
         # Compute reward
         reward = self._compute_reward(score_diff, agent_won, agent_lost)
+        self.last_post_agent_snapshot = capture_state_snapshot(
+            self.env.current_state_of_the_game,
+            self.player_id,
+        )
         
         # Update turn counter
         self.turn_count += 1

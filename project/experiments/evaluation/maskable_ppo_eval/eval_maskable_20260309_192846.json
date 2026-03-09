@@ -1,0 +1,126 @@
+{
+  "_meta": {
+    "model_path": "project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "model_path_abs": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "eval_tag": "(unset)",
+    "timestamp": "20260309_192846",
+    "games_per_opponent": 100,
+    "max_turns": 200,
+    "config_source": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/configs/training/maskable_ppo_event_v1.yaml",
+    "event_shaping_enabled": true
+  },
+  "vs_random_wrapper": {
+    "total_games": 100,
+    "wins": 95,
+    "losses": 0,
+    "draws": 5,
+    "win_rate": 95.0,
+    "loss_rate": 0.0,
+    "agent_scores": {
+      "mean": 15.54,
+      "std": 3.9177034088863842,
+      "min": 0,
+      "max": 23,
+      "median": 16.0
+    },
+    "opponent_scores": {
+      "mean": 0.84,
+      "std": 1.4263239463740347,
+      "min": 0,
+      "max": 10
+    },
+    "game_lengths": {
+      "mean": 31.55,
+      "std": 6.4333117443506485,
+      "min": 4,
+      "max": 42
+    },
+    "rewards": {
+      "mean": 367.215200075183,
+      "std": 91.05953537890242
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  },
+  "vs_random_agent": {
+    "total_games": 100,
+    "wins": 82,
+    "losses": 7,
+    "draws": 11,
+    "win_rate": 82.0,
+    "loss_rate": 7.000000000000001,
+    "agent_scores": {
+      "mean": 14.0,
+      "std": 5.372150407425317,
+      "min": 0,
+      "max": 22,
+      "median": 15.0
+    },
+    "opponent_scores": {
+      "mean": 5.33,
+      "std": 4.183431605751431,
+      "min": 0,
+      "max": 17
+    },
+    "game_lengths": {
+      "mean": 29.37,
+      "std": 8.97625200181011,
+      "min": 4,
+      "max": 40
+    },
+    "rewards": {
+      "mean": 337.4870000644481,
+      "std": 129.94665138652732
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  },
+  "vs_greedy": {
+    "total_games": 100,
+    "wins": 80,
+    "losses": 18,
+    "draws": 2,
+    "win_rate": 80.0,
+    "loss_rate": 18.0,
+    "agent_scores": {
+      "mean": 14.66,
+      "std": 4.519336234448594,
+      "min": 0,
+      "max": 21,
+      "median": 15.0
+    },
+    "opponent_scores": {
+      "mean": 7.68,
+      "std": 4.841239510703845,
+      "min": 0,
+      "max": 16
+    },
+    "game_lengths": {
+      "mean": 31.19,
+      "std": 6.077326714929846,
+      "min": 4,
+      "max": 40
+    },
+    "rewards": {
+      "mean": 341.4763000728986,
+      "std": 105.51522900834001
+    },
+    "invalid_actions": {
+      "mean_per_game": 0.0,
+      "total": 0,
+      "games_with_invalid": 0,
+      "note": "MaskablePPO: impossible by design"
+    },
+    "zero_actions_episodes": 0
+  }
+}

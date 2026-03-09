@@ -15,6 +15,7 @@ Usage:
 import sys
 sys.path.insert(0, ".")
 sys.path.insert(0, "modules")
+sys.path.append("project/src")  # for reward.* and utils.* sub-modules
 
 import argparse
 import json
@@ -22,16 +23,67 @@ from pathlib import Path
 from datetime import datetime
 
 import numpy as np
+import yaml
 from tqdm import tqdm
 from sb3_contrib import MaskablePPO
 
 from agents.random_agent import RandomAgent
 from agents.greedy_agent_boost import GreedyAgentBoost
 from project.src.utils.splendor_gym_wrapper import SplendorGymWrapper
+from project.src.utils.event_reward_wrapper import maybe_wrap_with_event_shaping
+
+
+def load_eval_config(model_path: str, config_path: str | None) -> tuple[dict, str]:
+    """Load eval config explicitly or infer it from the saved training run."""
+    if config_path:
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f), str(Path(config_path).resolve())
+
+    model = Path(model_path).resolve()
+    for parent in [model.parent, *model.parents]:
+        candidate = parent / "config.yaml"
+        if candidate.exists():
+            with open(candidate, "r") as f:
+                return yaml.safe_load(f), str(candidate)
+
+    return {"environment": {"reward_mode": "score_progress"}}, "(default score-only)"
+
+
+def create_eval_env(config: dict, opponent_agent, max_turns: int, player_id: int):
+    """Build the eval env with the same observation shaping used during training."""
+    env_cfg = config.get("environment", {})
+    env = SplendorGymWrapper(
+        opponent_agent=opponent_agent,
+        reward_mode=env_cfg.get("reward_mode", "score_progress"),
+        max_turns=max_turns,
+        player_id=player_id,
+    )
+    return maybe_wrap_with_event_shaping(env, config)
+
+
+def validate_observation_shape(model, env) -> None:
+    expected = tuple(model.observation_space.shape)
+    actual = tuple(env.observation_space.shape)
+    if expected != actual:
+        raise ValueError(
+            f"Model expects observation shape {expected}, but eval env exposes {actual}. "
+            "Use the training config via --config or keep event_shaping settings aligned."
+        )
+
+
+def _get_legal_actions(env):
+    """Walk wrapper chain to find cached_legal_actions on SplendorGymWrapper."""
+    current = env
+    while current is not None:
+        if hasattr(current, "cached_legal_actions"):
+            return current.cached_legal_actions
+        current = getattr(current, "env", None)
+    return []
 
 
 def evaluate_vs_opponent(
     model,
+    config,
     opponent_agent,
     num_games: int,
     max_turns: int = 200,
@@ -57,18 +109,20 @@ def evaluate_vs_opponent(
         # Even games: agent is player 0 (moves first).
         # Odd  games: agent is player 1 (opponent moves first).
         player_id = game_idx % 2
-        env = SplendorGymWrapper(
+        env = create_eval_env(
+            config=config,
             opponent_agent=opponent_agent,
-            reward_mode="score_progress",
             max_turns=max_turns,
             player_id=player_id,
         )
+        if game_idx == 0:
+            validate_observation_shape(model, env)
         obs, info = env.reset()
         done = False
         ep_reward = 0.0
 
         while not done:
-            n_legal = len(env.cached_legal_actions)
+            n_legal = len(_get_legal_actions(env))
 
             if n_legal == 0:
                 zero_actions_count += 1
@@ -186,6 +240,12 @@ def main():
     parser.add_argument("--games", type=int, default=100)
     parser.add_argument("--max-turns", type=int, default=200)
     parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Optional training config. If omitted, inferred from model directory.",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="project/experiments/evaluation/maskable_ppo_eval",
@@ -212,8 +272,11 @@ def main():
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    config, config_source = load_eval_config(args.model, args.config)
+
     print("Loading MaskablePPO model...")
     model = MaskablePPO.load(args.model)
+    print(f"Config:  {config_source}")
     print("✓ Model loaded\n")
 
     all_results = {}
@@ -223,7 +286,7 @@ def main():
     # full choose_action() API. These are slightly different random strategies.
     # Label: "Random (wrapper)" to distinguish from "RandomAgent" below.
     stats = evaluate_vs_opponent(
-        model, opponent_agent=None, num_games=args.games,
+        model, config, opponent_agent=None, num_games=args.games,
         max_turns=args.max_turns, desc=f"{tag_label} vs Random",
     )
     all_results["vs_random_wrapper"] = stats
@@ -232,7 +295,7 @@ def main():
     # vs RandomAgent object
     random_agent = RandomAgent(distribution="uniform_on_types")
     stats = evaluate_vs_opponent(
-        model, opponent_agent=random_agent, num_games=args.games,
+        model, config, opponent_agent=random_agent, num_games=args.games,
         max_turns=args.max_turns, desc=f"{tag_label} vs RandomAgent",
     )
     all_results["vs_random_agent"] = stats
@@ -241,7 +304,7 @@ def main():
     # vs GreedyAgent
     greedy_agent = GreedyAgentBoost(name="Greedy", mode="value")
     stats = evaluate_vs_opponent(
-        model, opponent_agent=greedy_agent, num_games=args.games,
+        model, config, opponent_agent=greedy_agent, num_games=args.games,
         max_turns=args.max_turns, desc=f"{tag_label} vs GreedyAgent",
     )
     all_results["vs_greedy"] = stats
@@ -260,6 +323,8 @@ def main():
             "timestamp": timestamp,
             "games_per_opponent": args.games,
             "max_turns": args.max_turns,
+            "config_source": config_source,
+            "event_shaping_enabled": bool(config.get("event_shaping", {}).get("enabled", False)),
         },
         **all_results,
     }

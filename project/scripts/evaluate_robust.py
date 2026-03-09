@@ -32,12 +32,52 @@ from pathlib import Path
 from datetime import datetime
 
 import numpy as np
+import yaml
 from tqdm import tqdm
 from sb3_contrib import MaskablePPO
 
 from agents.random_agent import RandomAgent
 from agents.greedy_agent_boost import GreedyAgentBoost
 from project.src.utils.splendor_gym_wrapper import SplendorGymWrapper
+from project.src.utils.event_reward_wrapper import maybe_wrap_with_event_shaping
+
+
+def load_eval_config(model_path: str, config_path: str | None) -> tuple[dict, str]:
+    """Load eval config explicitly or infer it from the saved training run."""
+    if config_path:
+        with open(config_path, "r") as f:
+            return yaml.safe_load(f), str(Path(config_path).resolve())
+
+    model = Path(model_path).resolve()
+    for parent in [model.parent, *model.parents]:
+        candidate = parent / "config.yaml"
+        if candidate.exists():
+            with open(candidate, "r") as f:
+                return yaml.safe_load(f), str(candidate)
+
+    return {"environment": {"reward_mode": "score_progress"}}, "(default score-only)"
+
+
+def create_eval_env(config: dict, opponent_agent, max_turns: int, player_id: int):
+    """Build the eval env with the same observation shaping used during training."""
+    env_cfg = config.get("environment", {})
+    env = SplendorGymWrapper(
+        opponent_agent=opponent_agent,
+        reward_mode=env_cfg.get("reward_mode", "score_progress"),
+        max_turns=max_turns,
+        player_id=player_id,
+    )
+    return maybe_wrap_with_event_shaping(env, config)
+
+
+def validate_observation_shape(model, env) -> None:
+    expected = tuple(model.observation_space.shape)
+    actual = tuple(env.observation_space.shape)
+    if expected != actual:
+        raise ValueError(
+            f"Model expects observation shape {expected}, but eval env exposes {actual}. "
+            "Use the training config via --config or keep event_shaping settings aligned."
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +99,7 @@ def wilson_ci(wins: int, n: int, z: float = 1.96):
 # Single-batch evaluation (mirrors evaluate_maskable_ppo.py logic)
 # ---------------------------------------------------------------------------
 
-def _run_batch(model, opponent_agent, n_games: int, seed: int, desc: str):
+def _run_batch(model, config, opponent_agent, n_games: int, seed: int, desc: str):
     """Run n_games games with a given numpy/random seed and return raw stats."""
     np.random.seed(seed)
     random.seed(seed)
@@ -72,12 +112,14 @@ def _run_batch(model, opponent_agent, n_games: int, seed: int, desc: str):
 
     for game_idx in tqdm(range(n_games), desc=desc, leave=False):
         player_id = game_idx % 2
-        env = SplendorGymWrapper(
+        env = create_eval_env(
+            config=config,
             opponent_agent=opponent_agent,
-            reward_mode="score_progress",
             max_turns=200,
             player_id=player_id,
         )
+        if game_idx == 0:
+            validate_observation_shape(model, env)
         obs, _ = env.reset()
         done = False
         ep_reward = 0.0
@@ -138,7 +180,7 @@ def _run_batch(model, opponent_agent, n_games: int, seed: int, desc: str):
 # Main evaluation loop: multiple batches per opponent
 # ---------------------------------------------------------------------------
 
-def evaluate_robust(model, opponent_agent, total_games: int, n_batches: int, label: str):
+def evaluate_robust(model, config, opponent_agent, total_games: int, n_batches: int, label: str):
     """
     Run `n_batches` independent batches of size `total_games // n_batches`.
     Returns aggregated stats including Wilson CI on pooled results.
@@ -149,7 +191,7 @@ def evaluate_robust(model, opponent_agent, total_games: int, n_batches: int, lab
     batch_results = []
     for b_idx, seed in enumerate(base_seeds):
         desc = f"{label} batch {b_idx + 1}/{n_batches} (seed={seed})"
-        result = _run_batch(model, opponent_agent, batch_size, seed, desc)
+        result = _run_batch(model, config, opponent_agent, batch_size, seed, desc)
         batch_results.append(result)
         print(
             f"  Batch {b_idx + 1}: {result['win_rate']:.1f}% win  "
@@ -197,6 +239,12 @@ def main():
     parser.add_argument("--games",   type=int, default=1000, help="Total games per opponent")
     parser.add_argument("--batches", type=int, default=10,   help="Number of independent batches (seeds)")
     parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Optional training config. If omitted, inferred from model directory.",
+    )
+    parser.add_argument(
         "--output",
         type=str,
         default="project/experiments/evaluation/robust",
@@ -221,9 +269,11 @@ def main():
     print()
 
     Path(args.output).mkdir(parents=True, exist_ok=True)
+    config, config_source = load_eval_config(args.model, args.config)
 
     print("Loading model …")
     model = MaskablePPO.load(args.model)
+    print(f"Config:  {config_source}")
     print("✓ Model loaded\n")
 
     opponents = [
@@ -237,7 +287,7 @@ def main():
         print(f"\n{'─' * 60}")
         print(f"  Evaluating vs {label}")
         print(f"{'─' * 60}")
-        result = evaluate_robust(model, agent, args.games, args.batches, label)
+        result = evaluate_robust(model, config, agent, args.games, args.batches, label)
         all_results[label] = result
 
     # -----------------------------------------------------------------------
@@ -281,6 +331,8 @@ def main():
             "games_per_opponent": args.games,
             "batches":        args.batches,
             "games_per_batch": games_per_batch,
+            "config_source": config_source,
+            "event_shaping_enabled": bool(config.get("event_shaping", {}).get("enabled", False)),
         },
         **all_results,
     }
