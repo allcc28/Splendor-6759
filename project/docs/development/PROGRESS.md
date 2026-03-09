@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 10 Complete ✅ — Score-Based Ceiling Hunt concluded; V4a best_model is current best (82% vs Greedy, n=100)
+**Current Phase**: Phase 10 Complete ✅ — Score-Based Ceiling Hunt concluded; V4a best_model is current best (**75.8% vs Greedy, n=1000**, Wilson CI [73.0%, 78.4%])
 
 ---
 
@@ -124,13 +124,23 @@ python project/scripts/train_curriculum.py \
   --config project/configs/training/maskable_ppo_v4c_curriculum.yaml
 ```
 
-### Results (fill in after each eval)
+### Results (n=100 quick eval)
 | Run | vs Random | vs RandomAgent | vs Greedy | Δ vs V3 Greedy | Decision |
 |-----|-----------|---------------|-----------|----------------|----------|
 | V3 (baseline) | 95% | 91% | **78%** | — | canonical |
 | V4a (best@860K) | 90% | 89% | **82%** | **+4 pp** | ✅ new best model |
 | V4b | — | — | — | — | skipped (V4c ran instead) |
 | V4c (curriculum best, Stage3) | 93% | 89% | **73%** | **−5 pp** | ❌ regression |
+
+### Robust Evaluation Results (n=1000, authoritative — 2026-03-08)
+| Opponent | Win% | 95% Wilson CI | W / L / D | Agent avg score | Opp avg score |
+|----------|:----:|:-------------:|:---------:|:---------------:|:-------------:|
+| Random (wrapper) | **94.8%** | [93.2%, 96.0%] | 948 / 4 / 48 | 15.3 | 1.0 |
+| RandomAgent | **91.2%** | [89.3%, 92.8%] | 912 / 43 / 45 | 15.2 | 5.2 |
+| GreedyAgent | **75.8%** | [73.0%, 78.4%] | 758 / 210 / 32 | 14.2 | 8.5 |
+
+> Note: the n=100 eval gave 82% vs Greedy (V4a). The authoritative 1000-game figure is **75.8%** — the small-n run had ~6 pp upward bias. This is within the expected ±CI range.
+> Full report: `project/experiments/evaluation/robust/robust_eval_v4a_20260308_143224_report.md`
 
 > **V4c analysis**: Curriculum hurt vs Greedy. Stage 3 fine-tuning (200K steps vs Greedy) caused catastrophic forgetting of the policy learned in Stages 1–2. The 200K steps were not enough to converge against Greedy, and the model lost its stable Random-opponent performance in the process.
 
@@ -142,17 +152,18 @@ python project/scripts/train_curriculum.py \
 - **Pivot to Phase 11: Event-based reward shaping**
 
 ### Final Score-Based Leaderboard
-| Model | vs Random | vs RandomAgent | vs Greedy |
-|-------|-----------|---------------|-----------|
-| V1 PPO | 51% | 43% | 53% |
-| V3 MaskablePPO | 95% | 91% | 78% |
-| **V4a MaskablePPO** | **90%** | **89%** | **82%** |
+| Model | vs Random | vs RandomAgent | vs Greedy | Protocol |
+|-------|-----------|---------------|-----------|----------|
+| V1 PPO | 51% | 43% | 53% | n=100 |
+| V3 MaskablePPO | 95% | 91% | 78% | n=100 |
+| V4a MaskablePPO | 90% | 89% | 82% | n=100 |
+| **V4a MaskablePPO (robust)** | **94.8%** | **91.2%** | **75.8%** | **n=1000, Wilson CI** |
 
 ---
 
 ## 📅 Phase 11: Event-Based Reward Shaping (NEXT)
 
-Best observed score-based result: **82% vs GreedyAgent** (V4a, n=100). The +4 pp gain over V3 is below the 5 pp stop-loss threshold and, with n=100, is not statistically conclusive (z≈0.71, overlapping CIs). Treating this as the practical ceiling for the current architecture before pivoting to event-based rewards. Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
+Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson 95% CI [73.0%, 78.4%]). The n=100 quick eval had shown 82%, but the 1000-game robust evaluation confirms the true win rate is ~76%. This is a +0 pp improvement over V3's 78% baseline within CI, confirming the 5 pp stop-loss threshold was correctly triggered. Treating this as the practical ceiling for the current architecture before pivoting to event-based rewards. Next step: design event-based rewards that reward gem collection strategy, noble progress, and card reservation — without manually encoding game knowledge.
 
 ### Documentation & Planning
 - [x] Created implementation plan with 15 detailed tasks
@@ -572,5 +583,5 @@ project/experiments/reports/
 
 ---
 
-**Last Updated**: 2026-03-08 (Phase 10 concluded — V4a 82% best observed; V4c 73% regression; stop-loss triggered; pivot to Phase 11)  
+**Last Updated**: 2026-03-09 (Phase 10 concluded — V4a robust eval done: **75.8% vs Greedy, n=1000** [73.0%, 78.4%] CI; V4c 73% regression; stop-loss correctly triggered; pivot to Phase 11)  
 **Next Steps**: Phase 11 — Event-based reward shaping. Design `event_reward_calculator.py`, add `reward_mode: event_based` to wrapper, train V5.
