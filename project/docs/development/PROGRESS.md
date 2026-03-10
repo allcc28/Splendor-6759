@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) trained & evaluated (**80.0% vs Greedy, n=100**); V4a remains n=1000 authoritative baseline (75.8%)
+**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) robust eval complete (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%])
 
 ---
 
@@ -193,14 +193,32 @@ Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson
 | RandomAgent | **82.0%** | 82/7/11 | 14.0 ± 5.4 | 5.3 ± 4.2 |
 | GreedyAgent | **80.0%** | 80/18/2 | 14.7 ± 4.5 | 7.7 ± 4.8 |
 
-#### V4a vs V5 Comparison (n=100)
+#### V5 Robust Evaluation Results (n=1000, authoritative — 2026-03-09/10)
+| Opponent | Win% | 95% Wilson CI | W / L / D | Agent avg | Opp avg |
+|----------|:----:|:-------------:|:---------:|:---------:|:-------:|
+| Random (wrapper) | **94.3%** | [92.7%, 95.6%] | 943 / 6 / 51 | 15.3 | 0.9 |
+| RandomAgent | **88.8%** | [86.7%, 90.6%] | 888 / 60 / 52 | 15.0 | 5.6 |
+| GreedyAgent | **77.9%** | [75.2%, 80.4%] | 779 / 183 / 38 | 14.4 | 8.0 |
+
+> Full report: `project/experiments/evaluation/robust/robust_eval_v5_event_20260309_211510_report.md`
+
+#### V4a vs V5 Comparison (n=1000 authoritative)
+| Opponent | V4a (score-based) | V5 (event-based) | Δ | Significant? |
+|----------|:-----------------:|:----------------:|:---:|:---:|
+| Random | 94.8% [93.2%, 96.0%] | 94.3% [92.7%, 95.6%] | −0.5 pp | No (CI overlap) |
+| RandomAgent | 91.2% [89.3%, 92.8%] | 88.8% [86.7%, 90.6%] | −2.4 pp | No (CI overlap) |
+| GreedyAgent | 75.8% [73.0%, 78.4%] | **77.9% [75.2%, 80.4%]** | **+2.1 pp** | No (CI overlap) |
+
+> **Interpretation**: V5 event shaping improves vs-Greedy by +2.1 pp over V4a, but the Wilson CIs overlap (V4a upper 78.4% > V5 lower 75.2%), so **not statistically significant at n=1000**. Direction is positive. Would need n≈5000 for significance at this effect size. Event shaping is showing promise — the agent learns better engine-building (buy_card 68%, engine_spike 19%) — but weight tuning and longer training may be needed for a clear improvement.
+
+#### V4a vs V5 Comparison (n=100, quick eval)
 | Opponent | V4a (score-based) | V5 (event-based) | Δ |
 |----------|:-----------------:|:----------------:|:---:|
 | Random | 90% | 95% | +5 pp |
 | RandomAgent | 89% | 82% | −7 pp† |
 | GreedyAgent | 82% | **80%** | −2 pp‡ |
 
-> †‡ Both deltas are within n=100 noise range (±8 pp). The vs-Greedy result is within CI and shows event shaping at minimum matches V4a at n=100. Authoritative comparison requires a 1000-game robust eval.
+> †‡ Both deltas are within n=100 noise range (±8 pp).
 
 #### Key Observations
 - **buy_card rate 68% → engine_spike 19%**: Agent learned to chain card purchases effectively

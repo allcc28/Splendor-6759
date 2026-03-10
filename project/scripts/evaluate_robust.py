@@ -23,6 +23,7 @@ Defaults:
 import sys
 sys.path.insert(0, ".")
 sys.path.insert(0, "modules")
+sys.path.append("project/src")  # for reward.* and utils.* sub-modules
 
 import argparse
 import json
@@ -80,6 +81,16 @@ def validate_observation_shape(model, env) -> None:
         )
 
 
+def _get_legal_actions(env):
+    """Walk wrapper chain to find cached_legal_actions on SplendorGymWrapper."""
+    current = env
+    while current is not None:
+        if hasattr(current, "cached_legal_actions"):
+            return current.cached_legal_actions
+        current = getattr(current, "env", None)
+    return []
+
+
 # ---------------------------------------------------------------------------
 # Confidence interval utilities
 # ---------------------------------------------------------------------------
@@ -125,7 +136,7 @@ def _run_batch(model, config, opponent_agent, n_games: int, seed: int, desc: str
         ep_reward = 0.0
 
         while not done:
-            n_legal = len(env.cached_legal_actions)
+            n_legal = len(_get_legal_actions(env))
             if n_legal == 0:
                 obs, reward, terminated, truncated, info = env.step(0)
                 ep_reward += reward
