@@ -1,0 +1,71 @@
+# E2 Ablation: Remove 9 last-event flags, keep 60-dim gem-gap features.
+# Observation: 135 (base) + 60 (gem-gap) = 195-dim
+# Hypothesis: last-event flags are not useful; the improvement (if any) comes
+#             from shaping reward + gem-gap affordance features only.
+# Stage A: train 300k steps, quick-eval n=200 vs all 3 opponents.
+# Promote to Stage B (1M) only if vs Greedy >= 76% and training is stable.
+
+environment:
+  name: "SplendorMaskableEventBased"
+  reward_mode: "score_progress"
+  max_turns: 120
+  opponent: "random"
+
+event_shaping:
+  enabled: true
+  combine_with_score: true
+  include_gem_gaps: true       # ← KEEP gem-gap (60-dim)
+  append_last_event: false     # ← REMOVE last-event flags (9-dim): E2 change
+  log_freq: 10000
+  weights: [0.01, 10.0, 0.05, 5.0, 25.0, 0.20, 1.0, 2.0, 5.0]
+
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  clip_range_vf: null
+  normalize_advantage: true
+  ent_coef: 0.005
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+training:
+  total_timesteps: 300000
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_event_e2"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+experiment:
+  name: "maskable_ppo_event_e2_no_last_event"
+  tags:
+    - "maskable_ppo"
+    - "event_based"
+    - "ablation"
+    - "no_last_event"
+    - "stage_a"

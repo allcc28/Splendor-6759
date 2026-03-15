@@ -226,6 +226,11 @@ Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson
 - **block_reserve = 0**, **buy_reserved = 0**: Agent never triggers blocking/using-reserved events — likely because it never reserves
 - Event reward contributes ~9.65 per episode vs base reward ~1.84: event shaping dominates reward signal
 
+#### Next Experiment Plan
+- Phase 11 follow-up experiment matrix documented in `project/docs/development/specs/phase11_event_based_experiment_plan.md`
+- Scope: observation ablations (`gem-gap`, `last-event flags`), reward-lite tuning, and mixed-opponent training
+- Promotion rule: only runs that survive short-screen training and beat V5 on both robustness and behavior metrics go to full n=1000 evaluation
+
 #### Implementation Files (NEW in Phase 11)
 - `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
 - `project/src/utils/event_detector.py` — 9-event detection with `StateSnapshot`, `PlayerSnapshot`
