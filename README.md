@@ -1,79 +1,120 @@
-# Splendor RL: Reward Shaping & Advanced Planning
+# Splendor RL: Reward Shaping and Planning
 
-This repository is dedicated to the development and training of Reinforcement Learning agents for the board game **Splendor**. This project is a part of the IFT6759 course.
+This repository contains our IFT6759 project on reinforcement learning for **Splendor**. The current focus is to measure how far we can push a masked PPO agent with better reward design before moving on to search and hybrid planning methods.
 
-## 🚀 Project Overview
-The objective is to study the impact of reward shaping (Score-based vs. Event-based) and advanced planning algorithms (AlphaZero-style MCTS) on agent performance in a complex, multi-modal strategy game.
+## Project Status
 
-### Latest Milestone: Phase 1 & 8 Complete
-- ✅ **Phase 1 Baseline**: Successfully trained a PPO agent with simple score-based rewards against Random opponents.
-- ❌ **Experiment 1 (v2) Insight**: Training against Greedy opponents without Action Masking led to "passive avoidance" behavior. 
-- 🛠️ **Current Status**: Pivoting to **MaskablePPO** (using `sb3-contrib`) to handle the large discrete action space (200 actions) by masking illegal moves.
+Current phase: **Phase 11 - event-based reward shaping ablations**
 
-## 📂 Repository Structure
+Authoritative baselines so far:
 
-### 🛠️ Core Development (`project/`)
-- `project/src/utils/`: SB3 Gym Wrapper, State Vectorizer (135-dim), and utilities.
-- `project/configs/`: YAML configurations for training (PPO, Masking, etc.).
-- `project/scripts/`: Pipelines for training, evaluation, and plotting.
-- `project/experiments/`: Reports, evaluation results, and training figures.
-- `project/logs/`: TensorBoard logs and model checkpoints.
-- `project/docs/development/`: Progress trackers, ADRs, and session logs.
+| Model | Training setup | vs Random | vs RandomAgent | vs Greedy | Protocol |
+|-------|----------------|-----------|----------------|-----------|----------|
+| V4a MaskablePPO | score-based | 94.8% | 91.2% | 75.8% | robust eval, n=1000 |
+| V5 MaskablePPO | event-based | 94.3% | 88.8% | 77.9% | robust eval, n=1000 |
 
-### 📚 Documentation (`docs/`)
-- `plan.md`: The 10-week execution roadmap.
-- `Splendor_Feasibility_Report.md`: Technical feasibility study.
-- `Evidence_Inference_Speed.md`: Performance profiling and inference speed analysis.
+Current interpretation:
 
-### 🏗️ Game Modules (`modules/`)
-- `gym_splendor_code/`: The core Splendor environment logic.
-- `agents/`: Legacy agents (Greedy, Random, MCTS) used as training opponents.
-- `arena/`: Multi-agent match execution framework.
+- Action masking is already the default approach in this project.
+- Event shaping is slightly better than the score-based baseline against `GreedyAgent`, but the gain is not yet statistically convincing at `n=1000`.
+- The active work is **E1/E2 ablation screening** to test whether the V5 gains come from the shaping signal itself or from extra observation features such as gem-gap features and last-event flags.
 
-### 📦 Legacy Resources (`legacy/`)
-- Archived scripts, data, and historical experiments.
+Useful progress documents:
 
-## ⚙️ Environment Setup
+- `project/docs/development/PROGRESS.md`
+- `project/docs/development/specs/phase11_event_based_experiment_plan.md`
+- `project/experiments/evaluation/robust/robust_eval_v4a_20260308_143224_report.md`
+- `project/experiments/evaluation/robust/robust_eval_v5_event_20260309_211510_report.md`
 
-### Prerequisites
-- **OS**: WSL2 (Ubuntu 22.04 recommended)
-- **GPU**: NVIDIA RTX 4090 (or similar) with CUDA 12.1+
-- **Python**: 3.10.x (Miniconda recommended)
+## Repository Structure
 
-### Installation
-1. Clone the repository.
-2. Initialize the environment:
+### Core development (`project/`)
+
+- `project/src/`: wrappers, reward shaping, callbacks, and training utilities
+- `project/configs/`: YAML experiment configs for score-based and event-based runs
+- `project/scripts/`: training, evaluation, plotting, and diagnostics
+- `project/experiments/`: reports, JSON evaluations, and generated analysis
+- `project/logs/`: training runs, checkpoints, TensorBoard logs, and console logs
+- `project/docs/development/`: progress trackers, specs, ADRs, and dev logs
+
+### Documentation (`docs/`)
+
+- `docs/plan.md`: high-level project roadmap
+- `docs/Splendor_Feasibility_Report.md`: feasibility discussion
+- `docs/Evidence_Inference_Speed.md`: inference-speed argumentation for tournament play
+
+### Game modules (`modules/`)
+
+- `modules/`: legacy environment, agents, and arena code used by the RL pipeline
+
+### Legacy resources (`legacy/`)
+
+- historical experiments and archived material kept for reference
+
+## Environment Setup
+
+Recommended environment:
+
+- OS: `WSL2` on Windows
+- Python: `3.10`
+- GPU: CUDA-capable NVIDIA GPU
+
+Install the core dependencies:
+
 ```bash
 conda activate splendor
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
 pip install stable-baselines3[extra] gymnasium pyyaml tensorboard pytest
-pip install sb3-contrib  # Required for MaskablePPO
+pip install sb3-contrib
 ```
 
-## 🎮 How to Use
+## Common Commands
 
-### Training
-To train the baseline Score-based agent:
+Train the current score-based MaskablePPO baseline:
+
 ```bash
-python project/scripts/train_score_based.py
+python project/scripts/train_maskable_ppo.py \
+  --config project/configs/training/maskable_ppo_v4a_ent_lr.yaml
 ```
 
-### Evaluation
-To evaluate a trained model against different opponents:
+Train the current event-based baseline:
+
 ```bash
-python project/scripts/evaluate_score_based_v3.py --model path/to/model.zip --games 100
+python project/scripts/train_maskable_ppo.py \
+  --config project/configs/training/maskable_ppo_event_v1.yaml
 ```
 
-### Monitoring
-Launch TensorBoard from within WSL:
+Run a quick evaluation against all three opponents:
+
+```bash
+python project/scripts/evaluate_maskable_ppo.py \
+  --model project/logs/<run_dir>/eval/best_model \
+  --config project/configs/training/<config>.yaml \
+  --games 200
+```
+
+Run the robust evaluation protocol:
+
+```bash
+python project/scripts/evaluate_robust.py \
+  --model project/logs/<run_dir>/eval/best_model \
+  --config project/configs/training/<config>.yaml \
+  --games 1000 \
+  --batches 10
+```
+
+Monitor training with TensorBoard:
+
 ```bash
 tensorboard --logdir project/logs --port 6006
 ```
 
-## 📜 Key Research Themes
-1. **Reward Shaping**: Comparing sparse score rewards with dense event-based signals.
-2. **Action Masking**: Utilizing `MaskablePPO` to optimize learning in a high-branching-factor environment.
-3. **Hybrid Planning**: Integrating Neural Network value/policy priors with Monte Carlo Tree Search (AlphaZero style).
+## Research Themes
+
+1. Reward shaping: score-based rewards versus event-based shaping.
+2. Action masking: making large discrete action spaces trainable with `MaskablePPO`.
+3. Evaluation rigor: alternating first player, robust multi-batch evaluation, and Wilson confidence intervals.
+4. Future direction: move to search or hybrid planning only if reward shaping stops producing meaningful gains.
 
 ---
-*Developed for IFT6759 - Winter 2026*
+Developed for IFT6759 - Winter 2026
