@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) robust eval complete (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%])
+**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) robust eval complete (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%]); E2 Stage A quick screen complete, E1 Stage A interrupted
 
 ---
 
@@ -230,6 +230,26 @@ Authoritative score-based result (n=1000): **75.8% vs GreedyAgent** (V4a, Wilson
 - Phase 11 follow-up experiment matrix documented in `project/docs/development/specs/phase11_event_based_experiment_plan.md`
 - Scope: observation ablations (`gem-gap`, `last-event flags`), reward-lite tuning, and mixed-opponent training
 - Promotion rule: only runs that survive short-screen training and beat V5 on both robustness and behavior metrics go to full n=1000 evaluation
+
+#### Phase 11 Ablation Screen Status (E1/E2, 2026-03-10 to 2026-03-15)
+
+Current decision path: continue from E2 and do not block on E1.
+
+| Run | Config | Stage A Target | Artifact Status | Quick Eval Status | Decision |
+|-----|--------|----------------|-----------------|-------------------|----------|
+| E1 (no gap) | `maskable_ppo_event_v5_no_gap.yaml` | 300k + n=200 quick eval | `maskable_ppo_event_e1_no_gap_20260315_203357/` exists; checkpoints at 50k/100k | Not completed | Marked `interrupted/incomplete`; moved to backlog |
+| E2 (no last-event) | `maskable_ppo_event_v5_no_last_event.yaml` | 300k + n=200 quick eval | Run dir + best model available | `eval_maskable_20260315_202947.json` complete | Passed Stage A gate (`83.0% vs Greedy`) |
+
+Evidence files:
+- `project/experiments/evaluation/maskable_ppo_eval/eval_maskable_20260315_202947.json`
+- `project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/logs/checkpoints/maskable_ppo_event_e1_50000_steps.zip`
+- `project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/logs/checkpoints/maskable_ppo_event_e1_100000_steps.zip`
+- `project/logs/training_e1.log`
+
+Stage decision (as of 2026-03-15):
+- Promote E2 as the primary Stage B candidate.
+- Keep E1 as optional recovery run; do not treat E1 as a blocker.
+- Require full Stage B artifacts + robust eval (`n=1000`) before claiming improvement over V5.
 
 #### Implementation Files (NEW in Phase 11)
 - `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
