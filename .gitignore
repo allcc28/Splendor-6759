@@ -15,9 +15,12 @@ training_new.log
 evaluation_log.txt
 nohup.out
 
-# Project logs/artifacts (keep directory placeholder only)
+# Project logs/artifacts (ignore logs but expose final models)
 project/logs/**
 !project/logs/.gitkeep
+!project/logs/**/final_model.zip
+!project/logs/**/best_model.zip
+!project/logs/**/model.zip
 
 # Optional local outputs
 project/outputs/**
