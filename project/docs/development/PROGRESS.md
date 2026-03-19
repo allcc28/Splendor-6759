@@ -2,7 +2,7 @@
 
 **Start Date**: 2026-02-24  
 **Project**: PPO Score-Based RL Agent for Splendor  
-**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) robust eval complete (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%]); E2 Stage A quick screen complete, E1 Stage A interrupted
+**Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) remains the canonical event-based baseline (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%]); E2 Stage B robust eval complete and did not beat V5; E1 remains interrupted/backlog
 
 ---
 
@@ -250,6 +250,33 @@ Stage decision (as of 2026-03-15):
 - Promote E2 as the primary Stage B candidate.
 - Keep E1 as optional recovery run; do not treat E1 as a blocker.
 - Require full Stage B artifacts + robust eval (`n=1000`) before claiming improvement over V5.
+
+#### E2 Stage B Robust Evaluation (authoritative - 2026-03-17)
+
+**Model**: `project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/eval/best_model`  
+**Config**: `project/configs/training/maskable_ppo_event_e2_stage_b.yaml`  
+**Protocol**: `n=1000` per opponent, 10 independent batches, alternating first mover
+
+| Opponent | Win% | 95% Wilson CI | W / L / D | Agent avg | Opp avg |
+|----------|:----:|:-------------:|:---------:|:---------:|:-------:|
+| Random (wrapper) | **93.6%** | [91.9%, 95.0%] | 936 / 7 / 57 | 15.1 | 0.9 |
+| RandomAgent | **89.7%** | [87.7%, 91.4%] | 897 / 55 / 48 | 14.9 | 5.6 |
+| GreedyAgent | **73.8%** | [71.0%, 76.4%] | 738 / 222 / 40 | 13.8 | 8.2 |
+
+Comparison vs V5 robust baseline (`77.9%` vs Greedy, CI [75.2%, 80.4%]):
+- `Random (wrapper)`: `93.6%` vs `94.3%` (`-0.7 pp`)
+- `RandomAgent`: `89.7%` vs `88.8%` (`+0.9 pp`)
+- `GreedyAgent`: `73.8%` vs `77.9%` (`-4.1 pp`)
+
+Interpretation:
+- E2 Stage B does **not** improve on V5 on the primary metric (`vs GreedyAgent`).
+- The Wilson intervals overlap, so the gap is not definitive in a strict significance-test sense, but the point estimate moves in the wrong direction and is large enough (`-4.1 pp`) to fail the promotion goal.
+- E2's Stage A quick-screen signal (`83% vs Greedy`) did not hold up under the authoritative `n=1000` protocol, reinforcing that promotion decisions must rely on robust evaluation rather than small-sample screens.
+- Treat V5 as the current canonical event-based model; E2 Stage B is a useful negative/ablative result showing that removing last-event features did not help final robustness.
+
+Evidence files:
+- `project/experiments/evaluation/robust/robust_eval_e2_stage_b_20260317_130241.json`
+- `project/experiments/evaluation/robust/robust_eval_e2_stage_b_20260317_130241_report.md`
 
 #### Implementation Files (NEW in Phase 11)
 - `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
@@ -679,5 +706,5 @@ project/experiments/reports/
 
 ---
 
-**Last Updated**: 2026-03-09 (Phase 10 concluded — V4a robust eval done: **75.8% vs Greedy, n=1000** [73.0%, 78.4%] CI; V4c 73% regression; stop-loss correctly triggered; pivot to Phase 11)  
-**Next Steps**: Phase 11 — Event-based reward shaping. Design `event_reward_calculator.py`, add `reward_mode: event_based` to wrapper, train V5.
+**Last Updated**: 2026-03-19 (E2 Stage B robust eval reviewed from 2026-03-17: **73.8% vs Greedy, n=1000** [71.0%, 76.4%] CI; below V5's **77.9%** baseline, so V5 remains canonical and E2 is recorded as a non-promoted ablation result)  
+**Next Steps**: Continue Phase 11 from the V5 baseline. Prioritize new ablations/reward tuning only if they can beat V5 under the same `n=1000` robust protocol.
