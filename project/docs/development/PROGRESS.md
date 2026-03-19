@@ -706,5 +706,59 @@ project/experiments/reports/
 
 ---
 
-**Last Updated**: 2026-03-19 (E2 Stage B robust eval reviewed from 2026-03-17: **73.8% vs Greedy, n=1000** [71.0%, 76.4%] CI; below V5's **77.9%** baseline, so V5 remains canonical and E2 is recorded as a non-promoted ablation result)  
-**Next Steps**: Continue Phase 11 from the V5 baseline. Prioritize new ablations/reward tuning only if they can beat V5 under the same `n=1000` robust protocol.
+---
+
+## ⏳ Phase 11 (Continued): E3 Stage A — Lite Reward Shaping (2026-03-19)
+
+**Status**: 🔄 In Progress (Stage A: 300k steps)  
+**Start Time**: 2026-03-19 11:56 EDT  
+**Log Directory**: `project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615`
+
+### Motivation (from Phase 11 Plan)
+- **Primary risk identified**: Event reward dominates base reward, causing over-optimization of shaping proxy
+- **Key symptoms**: `reserve_card` and `buy_reserved` frequencies near 0% in V1/E2
+- **Hypothesis**: Reduce dominant weights (`buy_card`: 10→6, `reach_15`: 25→10, `engine_spike`: 5→3) while boosting reservation incentives (`reserve_card`: 0.05→0.10, `buy_reserved`: 2→3)
+
+### Configuration
+- **File**: `project/configs/training/maskable_ppo_event_v5_lite_reward.yaml`
+- **Observation**: 204-dim (135 base + event deltas + gem-gaps + last-event flags)
+- **Reward Weights E3 vs V1**:
+
+| Event | V1 | E3 | Δ | Rationale |
+|-------|----|----|---|-----------|
+| take_gems | 0.01 | 0.01 | — | no change |
+| buy_card | 10.0 | 6.0 | -40% | reduce dominance |
+| reserve_card | 0.05 | 0.10 | +100% | encourage reservations |
+| score_up | 5.0 | 5.0 | — | no change |
+| reach_15 | 25.0 | 10.0 | -60% | major reduction |
+| scarcity_take | 0.20 | 0.20 | — | no change |
+| block_reserve | 1.0 | 1.0 | — | no change |
+| buy_reserved | 2.0 | 3.0 | +50% | encourage buying from reserve |
+| engine_spike | 5.0 | 3.0 | -40% | reduce dominance |
+
+### Stage A Gate Conditions
+- ✓ vs RandomAgent ≥ 88% (V1 baseline: 88.8%)
+- ✓ reserve_card > 0% (event stat)
+- ✓ buy_reserved > 0% (event stat)
+- ✓ No training divergence
+
+### Artifacts
+- **Experiment Log**: `project/experiments/reports/e3_stage_a_log.md`
+- **Monitor Script**: `project/scripts/e3_stage_a_monitor.py` (auto-eval on completion)
+- **Quick Eval Script**: (built into monitor)
+- **Quick Ref**: `project/scripts/e3_monitor.sh` (progress dashboard)
+
+### Expected Timeline
+- Training: ~6-8h (300k ÷ ~50k/h on RTX 4090 + CUDA)
+- Quick eval: ~30 min (200 games)
+- Decision: Same day if gates met; next session if analysis needed
+
+### Next Decision Point
+- **If gates passed**: Promote to Stage B (1M full run)
+- **If RandomAgent drops <88%**: Reward was reduced too much; skip to E4 mixed-opponent
+- **If reserve/buy_reserved still 0%**: More fundamental issue; investigate state/masks
+
+---
+
+**Last Updated**: 2026-03-19 11:56 EDT (E3 Stage A training started)  
+**Next Steps**: Monitor training progress; run quick eval on completion; assess gates for Stage B promotion.
