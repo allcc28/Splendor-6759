@@ -17,10 +17,13 @@ nohup.out
 
 # Project logs/artifacts (ignore logs but expose final models)
 project/logs/**
+!project/logs/**/
 !project/logs/.gitkeep
 !project/logs/**/final_model.zip
 !project/logs/**/best_model.zip
 !project/logs/**/model.zip
+!project/logs/**/interrupted_model.zip
+!project/logs/**/model_after_*.zip
 
 # Optional local outputs
 project/outputs/**
