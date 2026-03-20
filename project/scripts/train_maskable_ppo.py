@@ -21,6 +21,7 @@ sys.path.insert(0, "project/src")  # lower priority: utils/
 sys.path.insert(0, "modules")      # higher priority: agents/
 
 import argparse
+import random
 import yaml
 from pathlib import Path
 from datetime import datetime
@@ -45,6 +46,7 @@ from utils.event_reward_wrapper import event_shaping_enabled, maybe_wrap_with_ev
 from utils.event_stats_callback import EventStatsCallback
 from utils.splendor_gym_wrapper import make_splendor_env
 from agents.random_agent import RandomAgent
+from agents.greedy_agent_boost import GreedyAgentBoost
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -61,25 +63,90 @@ def _mask_fn(env) -> np.ndarray:
     return env.action_masks()
 
 
+class MixedOpponentAgent:
+    """Randomly choose a delegate opponent on each decision call."""
+
+    def __init__(self, agents, probs=None, seed=None):
+        if not agents:
+            raise ValueError("MixedOpponentAgent requires at least one agent")
+        self.agents = list(agents)
+        self.name = "MixedOpponent(" + ",".join(getattr(a, "name", type(a).__name__) for a in self.agents) + ")"
+        self._rng = random.Random(seed)
+        self._probs = None
+        if probs is not None:
+            if len(probs) != len(self.agents):
+                raise ValueError("environment.opponent_mix.probs length must match agents")
+            total = float(sum(probs))
+            if total <= 0:
+                raise ValueError("environment.opponent_mix.probs must sum to > 0")
+            self._probs = [float(p) / total for p in probs]
+
+    def choose_action(self, observation, previous_actions):
+        if self._probs is None:
+            agent = self._rng.choice(self.agents)
+        else:
+            agent = self._rng.choices(self.agents, weights=self._probs, k=1)[0]
+        return agent.choose_action(observation, previous_actions)
+
+
+def _build_mixed_opponent(env_config: dict):
+    mix_cfg = env_config.get("opponent_mix", {}) or {}
+    raw_agents = mix_cfg.get("agents", ["random_agent", "greedy_agent"])
+    probs = mix_cfg.get("probs")
+    seed = mix_cfg.get("seed")
+
+    delegates = []
+    for raw in raw_agents:
+        name = str(raw).lower().strip()
+        if name in ("random", "random_agent"):
+            delegates.append(RandomAgent())
+        elif name in ("greedy", "greedy_agent", "greedy_boost"):
+            delegates.append(GreedyAgentBoost(name="Greedy", mode="value"))
+        elif name in ("none", ""):
+            continue
+        else:
+            raise ValueError(
+                f"Unknown mixed opponent agent '{raw}'. Supported: random_agent, greedy_agent."
+            )
+
+    if not delegates:
+        raise ValueError("environment.opponent_mix.agents produced an empty delegate set")
+    return MixedOpponentAgent(agents=delegates, probs=probs, seed=seed)
+
+
 def _make_opponent(opponent_cfg):
     """
     Instantiate an opponent agent from the config string.
 
-    Supported values:
-      'random' / 'random_agent' → RandomAgent()
-      null / None / 'none'      → None  (wrapper uses built-in fast-random)
+        Supported values:
+            'random' / 'random_agent' → RandomAgent()
+            'greedy' / 'greedy_agent' → GreedyAgentBoost(mode='value')
+            'mixed'                   → MixedOpponentAgent (configured via environment.opponent_mix)
+            null / None / 'none'      → None  (wrapper uses built-in fast-random)
 
     Raises ValueError for unrecognised strings so misconfiguration is
     caught immediately rather than silently falling back to random.
     """
     if opponent_cfg is None:
         return None
+
+    if isinstance(opponent_cfg, dict):
+        mode = str(opponent_cfg.get("mode", "")).lower().strip()
+        if mode == "mixed":
+            return _build_mixed_opponent({"opponent_mix": opponent_cfg})
+
     opp = str(opponent_cfg).lower().strip()
     if opp in ("random", "random_agent", "none", ""):
         return RandomAgent() if opp in ("random", "random_agent") else None
+    if opp in ("greedy", "greedy_agent"):
+        return GreedyAgentBoost(name="Greedy", mode="value")
+    if opp == "mixed":
+        raise ValueError(
+            "opponent='mixed' requires environment.opponent_mix with agents/probs in config"
+        )
     raise ValueError(
         f"Unknown opponent config value: '{opponent_cfg}'. "
-        "Supported: 'random', null/None."
+        "Supported: 'random', 'greedy', 'mixed', null/None."
     )
 
 
@@ -89,7 +156,11 @@ def create_env(config: dict, monitor_dir: str = None):
     MaskablePPO can find the mask via env.action_masks().
     """
     env_config = config["environment"]
-    opponent = _make_opponent(env_config.get("opponent"))
+    opponent_key = env_config.get("opponent")
+    if str(opponent_key).lower().strip() == "mixed":
+        opponent = _build_mixed_opponent(env_config)
+    else:
+        opponent = _make_opponent(opponent_key)
     env = make_splendor_env(
         reward_mode=env_config["reward_mode"],
         opponent_agent=opponent,
@@ -106,7 +177,11 @@ def create_env(config: dict, monitor_dir: str = None):
 def create_eval_env(config: dict):
     """Create a separate eval environment (also masked)."""
     env_config = config["environment"]
-    opponent = _make_opponent(env_config.get("opponent"))
+    opponent_key = env_config.get("opponent")
+    if str(opponent_key).lower().strip() == "mixed":
+        opponent = _build_mixed_opponent(env_config)
+    else:
+        opponent = _make_opponent(opponent_key)
     env = make_splendor_env(
         reward_mode=env_config["reward_mode"],
         opponent_agent=opponent,

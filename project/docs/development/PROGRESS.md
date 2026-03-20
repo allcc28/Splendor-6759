@@ -312,6 +312,35 @@ Evidence files:
 - `project/experiments/reports/e3_stage_a_log.md`
 - `_e3_stage_a_training.log`
 
+#### PDCA Loop (before E4) — 2026-03-19
+
+**Plan**
+- Goal: reduce reward-proxy domination and recover strategic reservation behavior while preserving generalization.
+- Gate: `vs RandomAgent >= 88%` and behavior gates (`reserve_card > 0`, `buy_reserved > 0`).
+
+**Do**
+- Ran E3 Stage A (`300k`) with lite reward table (`buy_card 10->6`, `reach_15 25->10`, `engine_spike 5->3`, `reserve_card 0.05->0.10`, `buy_reserved 2->3`).
+- Executed quick eval (`n=200`) against all 3 opponents.
+
+**Check**
+- Performance gate: passed (`RandomAgent 89.0%`, `Greedy 76.5%`, `Random wrapper 94.0%`).
+- Behavior gate: failed (`event_2_rate=0`, `event_7_rate=0` from 10k to 300k).
+- Training health: good (`explained_variance 0.818`, stable learning, no divergence).
+
+**Act**
+- E3 is not promoted to Stage B due to failed behavior gates.
+- Enter E4 to test the remaining top hypothesis: opponent-distribution mismatch.
+- Implementation action: add mixed-opponent support to training pipeline and run E4 Stage A with `opponent_mix = [RandomAgent, GreedyAgentBoost]`.
+
+#### E4 Stage A (mixed-opponent) — started 2026-03-19
+
+**Config**: `project/configs/training/maskable_ppo_event_v5_mixed_opp.yaml`  
+**Training code update**: `project/scripts/train_maskable_ppo.py` now supports `environment.opponent: mixed` with configurable `opponent_mix.agents/probs`.
+
+Stage A success gate (from plan):
+- `vs RandomAgent >= 89%`
+- `vs GreedyAgent >= 77%`
+
 #### Implementation Files (NEW in Phase 11)
 - `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
 - `project/src/utils/event_detector.py` — 9-event detection with `StateSnapshot`, `PlayerSnapshot`
