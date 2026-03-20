@@ -278,6 +278,40 @@ Evidence files:
 - `project/experiments/evaluation/robust/robust_eval_e2_stage_b_20260317_130241.json`
 - `project/experiments/evaluation/robust/robust_eval_e2_stage_b_20260317_130241_report.md`
 
+#### E3 Stage A (lite reward) Quick Screen — 2026-03-19
+
+**Model**: `project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/eval/best_model`  
+**Config**: `project/configs/training/maskable_ppo_event_v5_lite_reward.yaml`  
+**Protocol**: Stage A short run (300k) + quick eval (`n=200` per opponent)
+
+Quick eval results:
+
+| Opponent | Win Rate | W / L / D | Agent avg | Opp avg |
+|----------|:--------:|:---------:|:---------:|:-------:|
+| Random (wrapper) | **94.0%** | 188 / 1 / 11 | 15.38 | 1.15 |
+| RandomAgent | **89.0%** | 178 / 14 / 8 | 15.10 | 5.79 |
+| GreedyAgent | **76.5%** | 153 / 40 / 7 | 14.24 | 8.00 |
+
+Training health snapshot (300k):
+- `explained_variance`: **0.818**
+- `event_reward_mean`: **5.92**
+- `base_reward_mean`: **1.77**
+
+Behavior metrics (primary risk check):
+- `event_2_rate` (`reserve_card`): **0** across 10k→300k logs
+- `event_7_rate` (`buy_reserved`): **0** across 10k→300k logs
+
+Interpretation:
+- E3 preserved competitive win rate profile (RandomAgent gate passed at 89.0%).
+- E3 did **not** solve the core behavior risk from the Phase 11 plan: reservation behavior remains absent.
+- Under the stated gate rule (`reserve_card > 0` and `buy_reserved > 0`), E3 is **not promoted** to Stage B.
+- Next planned action: move to **E4 mixed-opponent training** if continuing the event-based search cycle.
+
+Evidence files:
+- `project/experiments/evaluation/maskable_ppo_eval/eval_maskable_e3_stage_a_20260319_204900.json`
+- `project/experiments/reports/e3_stage_a_log.md`
+- `_e3_stage_a_training.log`
+
 #### Implementation Files (NEW in Phase 11)
 - `project/src/utils/event_reward_wrapper.py` — Gym wrapper (204-dim obs, event-augmented reward)
 - `project/src/utils/event_detector.py` — 9-event detection with `StateSnapshot`, `PlayerSnapshot`
@@ -760,5 +794,5 @@ project/experiments/reports/
 
 ---
 
-**Last Updated**: 2026-03-19 11:56 EDT (E3 Stage A training started)  
-**Next Steps**: Monitor training progress; run quick eval on completion; assess gates for Stage B promotion.
+**Last Updated**: 2026-03-19 20:49 EDT (E3 Stage A completed: quick eval done; behavior gates failed because `reserve_card` and `buy_reserved` stayed at 0)  
+**Next Steps**: Do not promote E3 to Stage B. If continuing Phase 11 event track, proceed to E4 mixed-opponent Stage A and keep the same `n=200` quick-screen protocol before any full run.

@@ -1,7 +1,8 @@
 # E3 Stage A Experiment Log - Lite Reward Shaping
 
 **Date Started**: 2026-03-19 11:56 EDT  
-**Status**: ⏳ In Progress  
+**Date Completed**: 2026-03-19 20:49 EDT  
+**Status**: ✅ Completed (Stage A)  
 **Target**: 300k steps, quick eval n=200, focus on event stats
 
 ---
@@ -138,10 +139,44 @@ grep -o "[0-9]*/300000" _e3_stage_a_training.log | tail -1
 
 ---
 
+## Results (Recorded)
+
+### Training End Snapshot (300k)
+- `train/explained_variance`: **0.818**
+- `eval/mean_reward` at 300k: **232.76 ± 79.96**
+- `event_reward_mean`: **5.92**
+- `base_reward_mean`: **1.77**
+
+From `_e3_stage_a_training.log` at 300k:
+- `event_2_rate` (`reserve_card`): **0**
+- `event_7_rate` (`buy_reserved`): **0**
+
+Historical scan (10k → 300k):
+- `event_2_rate` remained **0** at every logged checkpoint
+- `event_7_rate` remained **0** at every logged checkpoint
+
+### Quick Eval (n=200)
+- Result file: `project/experiments/evaluation/maskable_ppo_eval/eval_maskable_e3_stage_a_20260319_204900.json`
+
+| Opponent | Win Rate | W / L / D | Agent Score | Opp Score |
+|----------|----------|-----------|-------------|-----------|
+| Random (wrapper) | **94.0%** | 188 / 1 / 11 | 15.38 ± 4.62 | 1.15 ± 2.24 |
+| RandomAgent | **89.0%** | 178 / 14 / 8 | 15.10 ± 4.17 | 5.79 ± 4.36 |
+| GreedyAgent | **76.5%** | 153 / 40 / 7 | 14.24 ± 4.54 | 8.00 ± 5.18 |
+
+### Gate Check (Stage A)
+1. `vs RandomAgent >= 88%`: **PASS** (89.0%)
+2. `reserve_card > 0`: **FAIL** (0)
+3. `buy_reserved > 0`: **FAIL** (0)
+4. Training stability: **PASS** (`explained_variance` strong, no divergence)
+
+### Stage Decision
+- **Do not promote E3 to Stage B** under the current rule, because behavior gates failed (`reserve_card` and `buy_reserved` never appeared).
+- Based on plan priority, proceed to **E4 mixed-opponent training** next if we continue this cycle.
+
 ## Notes & Observations
 
-(Will be filled during training)
-
 - **11:56 EDT**: Training started successfully
-- Status: Monitoring...
+- **20:49 EDT**: Quick eval completed and archived
+- Lite reward recovered/maintained win-rate profile, but did not unlock reservation behaviors.
 
