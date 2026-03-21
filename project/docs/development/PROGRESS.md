@@ -836,5 +836,49 @@ project/experiments/reports/
 
 **Intent**: force the policy to explore reservation pathways that remained completely unused in E3/E4.
 
-**Last Updated**: 2026-03-20 22:06 EDT (post-E4 PDCA refresh complete; E5 Stage A launched)  
-**Next Steps**: Finish E5 Stage A (300k), run quick eval + behavior metrics, then decide final Phase 11 disposition (promote/freeze/pivot).
+### E5 Stage A (V6 candidate) — completed 2026-03-21
+
+**Model**: `project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model`  
+**Config**: `project/configs/training/maskable_ppo_event_v6_candidate.yaml`  
+**Protocol**: Stage A short run (300k) + quick eval (`n=200`) + behavior metrics (`n=200`)
+
+Quick eval results (`evaluate_maskable_ppo.py`):
+
+| Opponent | Win Rate | W / L / D | Agent avg | Opp avg |
+|----------|:--------:|:---------:|:---------:|:-------:|
+| Random (wrapper) | **94.5%** | 189 / 4 / 7 | 15.1 | 1.2 |
+| RandomAgent | **93.0%** | 186 / 9 / 5 | 15.5 | 5.6 |
+| GreedyAgent | **78.0%** | 156 / 34 / 10 | 14.1 | 7.4 |
+
+Training health snapshot (300k):
+- `explained_variance`: **0.676**
+- `event_reward_mean`: **4.36**
+- `base_reward_mean`: **1.47**
+
+Behavior metrics (`evaluate_behavior_metrics.py`, n=200):
+- `reserve_card` frequency: **0.0000**
+- `buy_reserved` frequency: **0.0000**
+- `noble_acquisition_rate` (avg nobles/game):
+  - Random wrapper: **2.00**
+  - RandomAgent: **1.97**
+  - GreedyAgent: **1.76**
+- `avg score by turn` (Greedy): `T20=2.35`, `T40=13.74`, `T60=13.74`
+
+Interpretation:
+- E5 improves the Stage A win-rate signal over E4 and clears the quick-screen win thresholds.
+- Core behavior failure remains unchanged (`reserve_card=0`, `buy_reserved=0`), despite aggressive reward reweighting.
+- This indicates reward-magnitude tuning alone is insufficient to unlock reservation-policy usage in the current setup.
+
+PDCA decision:
+- **Do not promote to Stage B** under the behavior-aware promotion rule.
+- Close the current reward-shaping loop as non-productive for the reservation objective.
+- Recommended phase decision: freeze V5 as event-based endpoint and pivot effort to planning/hybrid track.
+
+Evidence files:
+- `project/experiments/evaluation/maskable_ppo_eval/eval_maskable_e5_stage_a_20260321_102830.json`
+- `project/experiments/evaluation/behavior_metrics/behavior_metrics_e5_stage_a_20260321_104557.json`
+- `project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model.zip`
+- `project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip`
+
+**Last Updated**: 2026-03-21 10:45 EDT (E5 Stage A quick eval + behavior metrics completed)  
+**Next Steps**: Freeze event-based reward iteration (V5 remains canonical event baseline) and shift next-cycle effort to planning/hybrid track.

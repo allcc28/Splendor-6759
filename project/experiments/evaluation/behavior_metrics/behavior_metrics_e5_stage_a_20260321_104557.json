@@ -1,0 +1,121 @@
+{
+  "_meta": {
+    "tag": "e5_stage_a",
+    "timestamp": "20260321_104557",
+    "model_path": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model",
+    "model_path_abs": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model",
+    "config_source": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/configs/training/maskable_ppo_event_v6_candidate.yaml",
+    "games_per_opponent": 200,
+    "max_turns": 200
+  },
+  "results": {
+    "random_wrapper": {
+      "games": 200,
+      "wins": 191,
+      "losses": 2,
+      "draws": 7,
+      "win_rate": 95.5,
+      "agent_score_mean": 15.275,
+      "opponent_score_mean": 0.905,
+      "average_game_length": 31.88,
+      "event_rates_per_step": {
+        "take_gems": 0.33767252195734004,
+        "buy_card": 0.66232747804266,
+        "reserve_card": 0.0,
+        "score_up": 0.2084378920953576,
+        "reach_15": 0.029328732747804266,
+        "scarcity_take": 0.29689460476787954,
+        "block_reserve": 0.0,
+        "buy_reserved": 0.0,
+        "engine_spike": 0.18255959849435383
+      },
+      "reservation_frequency": 0.0,
+      "buy_reserved_frequency": 0.0,
+      "noble_acquisition_rate": 2.0,
+      "avg_score_by_turn": {
+        "20": 2.315,
+        "40": 15.145,
+        "60": 15.275
+      },
+      "avg_purchased_cards_by_color": {
+        "red": 4.255,
+        "green": 4.335,
+        "blue": 4.6,
+        "white": 4.155,
+        "black": 3.77
+      }
+    },
+    "random_agent": {
+      "games": 200,
+      "wins": 187,
+      "losses": 6,
+      "draws": 7,
+      "win_rate": 93.5,
+      "agent_score_mean": 15.375,
+      "opponent_score_mean": 5.515,
+      "average_game_length": 31.88,
+      "event_rates_per_step": {
+        "take_gems": 0.3348494353826851,
+        "buy_card": 0.6651505646173149,
+        "reserve_card": 0.0,
+        "score_up": 0.21722082810539523,
+        "reach_15": 0.02917189460476788,
+        "scarcity_take": 0.29156210790464243,
+        "block_reserve": 0.0,
+        "buy_reserved": 0.0,
+        "engine_spike": 0.185069008782936
+      },
+      "reservation_frequency": 0.0,
+      "buy_reserved_frequency": 0.0,
+      "noble_acquisition_rate": 1.97,
+      "avg_score_by_turn": {
+        "20": 2.46,
+        "40": 15.305,
+        "60": 15.375
+      },
+      "avg_purchased_cards_by_color": {
+        "red": 4.225,
+        "green": 4.46,
+        "blue": 4.51,
+        "white": 4.24,
+        "black": 3.77
+      }
+    },
+    "greedy_agent": {
+      "games": 200,
+      "wins": 148,
+      "losses": 41,
+      "draws": 11,
+      "win_rate": 74.0,
+      "agent_score_mean": 13.74,
+      "opponent_score_mean": 7.93,
+      "average_game_length": 30.64,
+      "event_rates_per_step": {
+        "take_gems": 0.3441579634464752,
+        "buy_card": 0.6558420365535248,
+        "reserve_card": 0.0,
+        "score_up": 0.19092689295039164,
+        "reach_15": 0.023988250652741513,
+        "scarcity_take": 0.2974869451697128,
+        "block_reserve": 0.0,
+        "buy_reserved": 0.0,
+        "engine_spike": 0.179177545691906
+      },
+      "reservation_frequency": 0.0,
+      "buy_reserved_frequency": 0.0,
+      "noble_acquisition_rate": 1.76,
+      "avg_score_by_turn": {
+        "20": 2.35,
+        "40": 13.74,
+        "60": 13.74
+      },
+      "avg_purchased_cards_by_color": {
+        "red": 3.995,
+        "green": 4.09,
+        "blue": 4.23,
+        "white": 4.02,
+        "black": 3.76
+      }
+    }
+  }
+}
