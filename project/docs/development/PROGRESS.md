@@ -804,5 +804,37 @@ project/experiments/reports/
 - E4 Stage A complete: mixed-opponent training did not improve the Stage A decision signal (`RandomAgent` edge-pass, `Greedy` below gate).
 - Net result: no Stage B promotion candidate from E3/E4 under current rules.
 
-**Last Updated**: 2026-03-20 20:19 EDT (E4 Stage A quick eval completed and recorded)  
-**Next Steps**: Pause Stage B promotion. Either (a) tighten/reshape event design before new runs, or (b) freeze V5 as event endpoint and pivot effort to planning/hybrid track.
+### PDCA Refresh (post-E4 behavior metrics)
+
+**Plan**
+- Before freezing Phase 11 reward track, verify missing behavior metrics from the experiment plan.
+
+**Do**
+- Added `project/scripts/evaluate_behavior_metrics.py`.
+- Ran behavior eval on E4 Stage A best model (`n=200` per opponent).
+
+**Check**
+- Artifact: `project/experiments/evaluation/behavior_metrics/behavior_metrics_e4_stage_a_20260320_220644.json`
+- Reservation signals remain absent across all opponents:
+  - `reserve_card` frequency = 0.0
+  - `buy_reserved` frequency = 0.0
+- Additional plan metrics now available: noble acquisition rate, score at turn 20/40/60, purchased cards by color, average game length.
+
+**Act**
+- Launch one final Stage A candidate (E5/V6) with reservation-focused reward rebalance under mixed opponents.
+
+### E5 Stage A (V6 candidate) — started 2026-03-20
+
+**Config**: `project/configs/training/maskable_ppo_event_v6_candidate.yaml`  
+**Key changes vs E4**:
+- `buy_card`: 6.0 -> 4.0
+- `reach_15`: 10.0 -> 8.0
+- `reserve_card`: 0.10 -> 0.80
+- `buy_reserved`: 3.0 -> 8.0
+- `block_reserve`: 1.0 -> 2.0
+- `engine_spike`: 3.0 -> 2.5
+
+**Intent**: force the policy to explore reservation pathways that remained completely unused in E3/E4.
+
+**Last Updated**: 2026-03-20 22:06 EDT (post-E4 PDCA refresh complete; E5 Stage A launched)  
+**Next Steps**: Finish E5 Stage A (300k), run quick eval + behavior metrics, then decide final Phase 11 disposition (promote/freeze/pivot).

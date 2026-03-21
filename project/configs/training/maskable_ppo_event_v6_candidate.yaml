@@ -1,0 +1,74 @@
+# E5/V6 candidate: mixed-opponent + reservation-focused reward rebalance.
+# Purpose: break the persistent reserve_card / buy_reserved = 0 failure mode.
+# Stage A: 300k steps, then quick eval n=200.
+
+environment:
+  name: "SplendorMaskableEventBased"
+  reward_mode: "score_progress"
+  max_turns: 120
+  opponent: "mixed"
+  opponent_mix:
+    agents: ["random_agent", "greedy_agent"]
+    probs: [0.7, 0.3]
+    seed: 42
+
+event_shaping:
+  enabled: true
+  combine_with_score: true
+  include_gem_gaps: true
+  append_last_event: true
+  log_freq: 10000
+  # [take_gems, buy_card, reserve_card, score_up, reach_15, scarcity_take, block_reserve, buy_reserved, engine_spike]
+  # Rebalanced to strongly incentivize reservation path while reducing buy-card/reach-15 dominance.
+  weights: [0.01, 4.0, 0.80, 5.0, 8.0, 0.20, 2.0, 8.0, 2.5]
+
+ppo:
+  learning_rate: 0.0003
+  lr_schedule: "constant"
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  clip_range_vf: null
+  normalize_advantage: true
+  ent_coef: 0.005
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  policy: "MlpPolicy"
+  policy_kwargs:
+    net_arch:
+      - 256
+      - 256
+      - 128
+    activation_fn: "relu"
+
+training:
+  total_timesteps: 300000
+  eval_freq: 10000
+  eval_episodes: 10
+  save_freq: 50000
+  log_interval: 10
+  tensorboard_log: "logs/tensorboard"
+  verbose: 1
+
+checkpoints:
+  save_path: "logs/checkpoints"
+  name_prefix: "maskable_ppo_event_e5"
+  save_replay_buffer: false
+  save_vecnormalize: false
+
+evaluation:
+  deterministic: true
+  render: false
+  use_masking: true
+
+experiment:
+  name: "maskable_ppo_event_e5_v6_candidate"
+  tags:
+    - "maskable_ppo"
+    - "event_based"
+    - "e5"
+    - "v6_candidate"
+    - "stage_a"
