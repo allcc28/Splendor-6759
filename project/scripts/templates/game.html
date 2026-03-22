@@ -250,26 +250,30 @@
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            gap: 8px;
+            gap: 16px;
         }
         .card-discount {
-            font-size: 12px;
+            font-size: 13px;
             opacity: 0.9;
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: 6px;
+            white-space: nowrap;
+            min-height: 16px;
+            margin-bottom: 4px;
         }
-        .card-discount .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: 1px solid rgba(0,0,0,0.2);
+        
+        .card-discount .label {
+            display: inline-flex;
+            align-items: center;
+            line-height: 1;
+            margin-left: 0 !important;
         }
         .card-cost {
             display: flex;
             flex-wrap: wrap;
             gap: 4px;
             justify-content: center;
+            margin-top: 6px;
         }
         .cost-token {
             width: 18px;
@@ -940,7 +944,7 @@
                         <div class="card-level">L${card.level}</div>
                     </div>
                     <div class="card-body">
-                        <div class="card-discount"><span class="dot" style="background:${getColorCss(card.color)}"></span> ${getColorName(card.color)}</div>
+                    
                         <div class="card-cost">${renderCostTokens(card.cost)}</div>
                     </div>
                 `;

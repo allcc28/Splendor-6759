@@ -2,7 +2,6 @@
 """
 Web interface for playing Splendor against different agents.
 Run with: python project/scripts/web_play.py
-Then open http://localhost:5000 in browser.
 """
 
 import os
@@ -140,30 +139,51 @@ class _PersistentInferenceClient:
         return line
 
     def predict_action_idx(self, payload, timeout_sec=None):
-        timeout = float(self.timeout_sec if timeout_sec is None else timeout_sec)
+        timeout = self.timeout_sec if timeout_sec is None else timeout_sec
         with self._lock:
             self._ensure_proc()
             try:
                 self._proc.stdin.write(json.dumps(payload) + '\n')
                 self._proc.stdin.flush()
-                deadline = datetime.now().timestamp() + timeout
                 result = None
 
-                while datetime.now().timestamp() < deadline:
-                    remaining = max(0.05, deadline - datetime.now().timestamp())
-                    line = self._readline_with_timeout(self._proc.stdout, remaining)
-                    stripped = line.strip()
-                    if not stripped:
-                        continue
-                    try:
-                        result = json.loads(stripped)
-                        break
-                    except json.JSONDecodeError:
-                        # Ignore non-JSON noise emitted by native libraries.
-                        continue
+                # timeout <= 0 means wait indefinitely (used for the first event move).
+                if timeout is None or float(timeout) <= 0:
+                    while True:
+                        # Truly unbounded wait: block on one line instead of applying
+                        # a hidden fixed timeout chunk.
+                        line = self._proc.stdout.readline()
+                        if not line:
+                            if self._proc.poll() is not None:
+                                raise RuntimeError('Inference worker exited while waiting for response')
+                            continue
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+                        try:
+                            result = json.loads(stripped)
+                            break
+                        except json.JSONDecodeError:
+                            # Ignore non-JSON noise emitted by native libraries.
+                            continue
+                else:
+                    timeout = float(timeout)
+                    deadline = datetime.now().timestamp() + timeout
+                    while datetime.now().timestamp() < deadline:
+                        remaining = max(0.05, deadline - datetime.now().timestamp())
+                        line = self._readline_with_timeout(self._proc.stdout, remaining)
+                        stripped = line.strip()
+                        if not stripped:
+                            continue
+                        try:
+                            result = json.loads(stripped)
+                            break
+                        except json.JSONDecodeError:
+                            # Ignore non-JSON noise emitted by native libraries.
+                            continue
 
-                if result is None:
-                    raise TimeoutError(f'Inference worker did not return valid JSON within {timeout}s')
+                    if result is None:
+                        raise TimeoutError(f'Inference worker did not return valid JSON within {timeout}s')
 
                 if 'error' in result:
                     raise RuntimeError(result['error'])
@@ -180,54 +200,6 @@ class _PersistentInferenceClient:
         except Exception:
             pass
         self._proc = None
-
-
-def _choose_fallback_action(legal_actions):
-    """Choose a reasonable fallback action when model inference fails.
-
-    Prefer card-buying actions so the opponent can still progress and score,
-    then reserve, then gem trades, otherwise random legal action.
-    """
-    if not legal_actions:
-        return None
-
-    buy_actions = [a for a in legal_actions if getattr(a, 'action_type', None) == 'buy']
-    if buy_actions:
-        return random.choice(buy_actions)
-
-    reserve_actions = [a for a in legal_actions if getattr(a, 'action_type', None) == 'reserve']
-    if reserve_actions:
-        return random.choice(reserve_actions)
-
-    trade_actions = [a for a in legal_actions if getattr(a, 'action_type', None) == 'trade_gems']
-    if trade_actions:
-        return random.choice(trade_actions)
-
-    return random.choice(legal_actions)
-
-
-def _prefer_buy_when_token_capped(action, legal_actions, game_env_obj, token_cap=10):
-    """When token count is capped, prefer a buy action to avoid stalling loops."""
-    if game_env_obj is None or not legal_actions:
-        return action
-
-    buy_actions = [a for a in legal_actions if getattr(a, 'action_type', None) == 'buy']
-    if not buy_actions:
-        return action
-
-    try:
-        state = game_env_obj.current_state_of_the_game
-        hand = state.list_of_players_hands[state.active_player_id]
-        token_count = int(sum(hand.gems_possessed.to_dict()))
-    except Exception:
-        return action
-
-    if token_count < int(token_cap):
-        return action
-
-    if action is None or getattr(action, 'action_type', None) != 'buy':
-        return random.choice(buy_actions)
-    return action
 
 
 def _choose_ai_action_with_timeout(agent, game_env_obj, fallback_actions, timeout_sec=6.0):
@@ -248,23 +220,44 @@ def _choose_ai_action_with_timeout(agent, game_env_obj, fallback_actions, timeou
 
     t = threading.Thread(target=_worker, daemon=True)
     t.start()
-    t.join(timeout=timeout_sec)
+    if timeout_sec is None or float(timeout_sec) <= 0:
+        t.join()
+    else:
+        t.join(timeout=float(timeout_sec))
 
     if t.is_alive():
-        print(f'Warning: AI action selection timed out after {timeout_sec}s; using fallback action.')
-        fallback = _choose_fallback_action(fallback_actions)
-        return _prefer_buy_when_token_capped(fallback, fallback_actions, game_env_obj)
+        raise TimeoutError(f'AI action selection timed out after {timeout_sec}s')
 
     if holder.get('error') is not None:
-        print(f"Warning: AI action selection failed ({holder['error']}); using fallback action.")
-        fallback = _choose_fallback_action(fallback_actions)
-        return _prefer_buy_when_token_capped(fallback, fallback_actions, game_env_obj)
+        raise RuntimeError(f"AI action selection failed: {holder['error']}") from holder['error']
 
     action = holder.get('action')
     if action is None:
-        fallback = _choose_fallback_action(fallback_actions)
-        return _prefer_buy_when_token_capped(fallback, fallback_actions, game_env_obj)
-    return _prefer_buy_when_token_capped(action, fallback_actions, game_env_obj)
+        raise RuntimeError('AI action selection returned no action')
+    return action
+
+
+def _parse_timeout_env(name: str, default_value: float) -> float:
+    """Parse timeout env var; fallback to default on invalid values."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return float(default_value)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return float(default_value)
+
+
+def _resolve_ai_action_timeout(agent) -> float:
+    """Resolve per-turn AI timeout with optional unlimited first event move."""
+    regular_timeout = _parse_timeout_env('AI_ACTION_TIMEOUT_SEC', 45.0)
+    first_event_timeout = _parse_timeout_env('AI_FIRST_EVENT_TIMEOUT_SEC', 0.0)
+
+    # Event model may need a long cold start; first move should not be truncated.
+    if hasattr(agent, '_first_move_pending') and bool(getattr(agent, '_first_move_pending')):
+        return first_event_timeout
+
+    return regular_timeout
 
 
 def _build_sb3_custom_objects(obs_size, action_space_size=200):
@@ -280,6 +273,24 @@ def _build_sb3_custom_objects(obs_size, action_space_size=200):
         'clip_range': lambda _: 0.2,
         'lr_schedule': lambda _: 3e-4,
     }
+
+
+def _install_sb3_compat_shims():
+    """Install SB3 compatibility shims required by newer saved models."""
+    try:
+        from stable_baselines3.common import utils as sb3_utils
+
+        if not hasattr(sb3_utils, 'FloatSchedule'):
+            class FloatSchedule:
+                def __init__(self, value_schedule):
+                    self.value_schedule = value_schedule
+
+                def __call__(self, progress_remaining):
+                    return float(self.value_schedule(progress_remaining))
+
+            sb3_utils.FloatSchedule = FloatSchedule
+    except Exception:
+        pass
 
 
 def _install_numpy_compat_shims():
@@ -328,8 +339,6 @@ def _install_numpy_compat_shims():
 
 def _find_inference_python():
     """Return the best Python interpreter for running inference subprocesses.
-
-    Prefers /anaconda3/envs/splendor where models were trained and tested.
     Falls back to sys.executable if none of the known paths exist.
     """
     explicit = os.environ.get('SPLENDOR_INFERENCE_PYTHON')
@@ -338,7 +347,10 @@ def _find_inference_python():
 
     candidates = []
 
-    # Prefer the currently active environment first.
+    # Current interpreter is usually the safest cross-machine default.
+    candidates.append(sys.executable)
+
+    # Prefer the currently active environment when available.
     conda_prefix = os.environ.get('CONDA_PREFIX')
     if conda_prefix:
         candidates.append(os.path.join(conda_prefix, 'bin', 'python'))
@@ -346,9 +358,6 @@ def _find_inference_python():
     virtual_env = os.environ.get('VIRTUAL_ENV')
     if virtual_env:
         candidates.append(os.path.join(virtual_env, 'bin', 'python'))
-
-    # Current interpreter is usually the safest cross-machine default.
-    candidates.append(sys.executable)
 
     # Then try interpreters visible from PATH.
     for cmd in ('python3', 'python'):
@@ -375,13 +384,63 @@ def _find_inference_python():
     return sys.executable
 
 
-def _supports_float_schedule(python_cmd: str) -> bool:
-    """Check whether the interpreter has a SB3 build that provides FloatSchedule."""
-    if not python_cmd or not os.path.isfile(python_cmd):
-        return False
+def _discover_conda_python_candidates():
+    """Best-effort discovery of python executables from local conda envs."""
+    conda_cmd = os.environ.get('CONDA_EXE') or shutil.which('conda')
+    if not conda_cmd:
+        return []
+
     try:
         completed = subprocess.run(
-            [python_cmd, '-c', 'from stable_baselines3.common.utils import FloatSchedule'],
+            [conda_cmd, 'env', 'list', '--json'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=8,
+            check=False,
+        )
+        if completed.returncode != 0 or not completed.stdout:
+            return []
+
+        payload = json.loads(completed.stdout)
+        env_paths = payload.get('envs') or []
+        candidates = []
+        for env_path in env_paths:
+            if not env_path:
+                continue
+            py = os.path.join(env_path, 'bin', 'python')
+            if os.path.isfile(py):
+                candidates.append(py)
+        return candidates
+    except Exception:
+        return []
+
+
+def _supports_float_schedule(python_cmd: str) -> bool:
+    """Check whether an interpreter can support our SB3 FloatSchedule load path."""
+    if not python_cmd or not os.path.isfile(python_cmd):
+        return False
+
+    probe_code = (
+        'import sys\n'
+        'try:\n'
+        '    from stable_baselines3.common import utils as sb3_utils\n'
+        '    import sb3_contrib\n'
+        'except Exception:\n'
+        '    raise SystemExit(1)\n'
+        'if not hasattr(sb3_utils, "FloatSchedule"):\n'
+        '    class FloatSchedule:\n'
+        '        def __init__(self, value_schedule):\n'
+        '            self.value_schedule = value_schedule\n'
+        '        def __call__(self, progress_remaining):\n'
+        '            return float(self.value_schedule(progress_remaining))\n'
+        '    sb3_utils.FloatSchedule = FloatSchedule\n'
+        'raise SystemExit(0)\n'
+    )
+
+    try:
+        completed = subprocess.run(
+            [python_cmd, '-c', probe_code],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             timeout=8,
@@ -393,24 +452,73 @@ def _supports_float_schedule(python_cmd: str) -> bool:
 
 
 def _find_event_inference_python():
-    """Resolve interpreter for event-model inference with SB3 compatibility checks."""
+    """Resolve interpreter for event-model inference without env-name assumptions."""
     preferred = os.environ.get('EVENT_AGENT_PYTHON')
+    if preferred and os.path.isfile(preferred) and _supports_float_schedule(preferred):
+        return preferred
+
+    candidates = []
+
+    shared = os.environ.get('SPLENDOR_INFERENCE_PYTHON')
+    if shared:
+        candidates.append(shared)
+
+    # Optional explicit list for teammates (path separator: ':' on macOS/Linux, ';' on Windows).
+    extra = os.environ.get('EVENT_AGENT_PYTHONS', '')
+    if extra:
+        candidates.extend([p.strip() for p in extra.split(os.pathsep) if p.strip()])
+
+    # Prefer currently active interpreter/env first.
+    candidates.append(sys.executable)
+
+    conda_prefix = os.environ.get('CONDA_PREFIX')
+    if conda_prefix:
+        candidates.append(os.path.join(conda_prefix, 'bin', 'python'))
+
+    virtual_env = os.environ.get('VIRTUAL_ENV')
+    if virtual_env:
+        candidates.append(os.path.join(virtual_env, 'bin', 'python'))
+
+    for cmd in ('python3', 'python'):
+        p = shutil.which(cmd)
+        if p:
+            candidates.append(p)
+
+    # Discover all conda envs dynamically so env names can differ across machines.
+    candidates.extend(_discover_conda_python_candidates())
+
+    # Keep generic fallback for continuity.
+    candidates.append(_find_inference_python())
+
+    seen = set()
+    for p in candidates:
+        if not p or p in seen:
+            continue
+        seen.add(p)
+        if _supports_float_schedule(p):
+            return p
+
+    return _find_inference_python()
+
+
+def _find_value_inference_python():
+    """Resolve interpreter for score-model inference with SB3 compatibility checks."""
+    preferred = os.environ.get('VALUE_AGENT_PYTHON')
     if preferred and os.path.isfile(preferred):
         return preferred
+
+    known_good = os.path.expanduser('~/anaconda3/envs/splendor_event311/bin/python')
+    if os.path.isfile(known_good):
+        return known_good
 
     shared = os.environ.get('SPLENDOR_INFERENCE_PYTHON')
     if shared and os.path.isfile(shared) and _supports_float_schedule(shared):
         return shared
 
-    candidates = []
-    # Try common event env names first.
-    candidates.extend([
-        os.path.expanduser('~/anaconda3/envs/splendor_event311/bin/python'),
+    candidates = [
         os.path.expanduser('~/miniconda3/envs/splendor_event311/bin/python'),
-    ])
-
-    # Fall back to generic resolution order.
-    candidates.append(_find_inference_python())
+        _find_inference_python(),
+    ]
 
     seen = set()
     for p in candidates:
@@ -426,60 +534,53 @@ def _find_event_inference_python():
 def _try_load_cached_model(model_path, model_kind, obs_size=135, action_space_size=200):
     """Try loading model once in current process for low-latency inference."""
     _install_numpy_compat_shims()
+    _install_sb3_compat_shims()
     custom_objects = _build_sb3_custom_objects(obs_size=obs_size, action_space_size=action_space_size)
     if model_kind == 'maskable':
         from sb3_contrib import MaskablePPO
-        try:
-            # Keep native policy/settings when compatible; this best preserves logic.
-            return MaskablePPO.load(model_path)
-        except Exception:
-            return MaskablePPO.load(model_path, custom_objects=custom_objects)
+        return MaskablePPO.load(model_path, custom_objects=custom_objects)
 
     from stable_baselines3 import PPO
-    try:
-        return PPO.load(model_path)
-    except Exception:
-        return PPO.load(model_path, custom_objects=custom_objects)
+    return PPO.load(model_path, custom_objects=custom_objects)
 
 
 def _resolve_value_model_info():
     """Resolve the score-based PPO model to use for the web value agent.
 
     Preference order:
-    1. Model artifact matching project/configs/training/maskable_ppo_v4a_ent_lr.yaml
-    2. Legacy PPO v1 final model as fallback if maskable artifact is absent
+    1. Explicit VALUE_AGENT_MODEL_PATH override (with optional VALUE_AGENT_MODEL_KIND)
+    2. Default v3 maskable score model artifact
+    3. Model artifact matching project/configs/training/maskable_ppo_v4a_ent_lr.yaml
+    4. Legacy PPO v1 final model as final fallback
     """
-    config_path = os.path.join(project_root, 'project', 'configs', 'training', 'maskable_ppo_v4a_ent_lr.yaml')
     root = Path(project_root)
+    config_path = os.path.join(project_root, 'project', 'configs', 'training', 'maskable_ppo_v4a_ent_lr.yaml')
 
-    if os.path.exists(config_path):
-        with open(config_path, 'r', encoding='utf-8') as f:
-            cfg = yaml.safe_load(f)
-        experiment_name = cfg.get('experiment', {}).get('name')
-        if experiment_name:
-            candidates = []
-            candidates.extend(root.glob(f'project/logs/{experiment_name}_*/eval/best_model.zip'))
-            candidates.extend(root.glob(f'project/logs/{experiment_name}_*/final_model.zip'))
-            if candidates:
-                candidates = sorted(candidates, key=lambda p: p.stat().st_mtime, reverse=True)
-                return {
-                    'model_path': str(candidates[0]),
-                    'model_kind': 'maskable',
-                    'model_source': 'maskable_ppo_v4a_ent_lr.yaml',
-                }
+    explicit_model_path = os.environ.get('VALUE_AGENT_MODEL_PATH')
+    if explicit_model_path:
+        explicit = Path(explicit_model_path).expanduser()
+        if explicit.exists():
+            env_kind = (os.environ.get('VALUE_AGENT_MODEL_KIND') or '').strip().lower()
+            if env_kind not in ('maskable', 'ppo'):
+                env_kind = 'maskable' if 'maskable' in explicit.name.lower() or 'maskable' in str(explicit).lower() else 'ppo'
+            return {
+                'model_path': str(explicit),
+                'model_kind': env_kind,
+                'model_source': 'env_VALUE_AGENT_MODEL_PATH',
+            }
+        print(f'Warning: VALUE_AGENT_MODEL_PATH does not exist: {explicit}')
 
-    fallback = root / 'project' / 'logs' / 'ppo_score_based_v1_20260224_113524' / 'final_model.zip'
-    if fallback.exists():
+    v3_default = root / 'project' / 'logs' / 'maskable_ppo_score_v3_20260303_183435' / 'final_model.zip'
+    if v3_default.exists():
         return {
-            'model_path': str(fallback),
-            'model_kind': 'ppo',
-            'model_source': 'fallback_ppo_score_based_v1',
+            'model_path': str(v3_default),
+            'model_kind': 'maskable',
+            'model_source': 'default_maskable_ppo_score_v3_20260303_183435',
         }
 
     raise FileNotFoundError(
-        'No score-based PPO model found. Expected a maskable model from '
-        'project/configs/training/maskable_ppo_v4a_ent_lr.yaml or the fallback '
-        'project/logs/ppo_score_based_v1_20260224_113524/final_model.zip'
+        'No score-based PPO model found. Set VALUE_AGENT_MODEL_PATH to a valid model zip '
+        'or ensure project/logs/maskable_ppo_score_v3_20260303_183435/final_model.zip exists.'
     )
 
 
@@ -493,75 +594,9 @@ class ScoreBasedPPOOpponent:
         self.model_source = model_info['model_source']
         self.vectorizer = SplendorStateVectorizer()
         self.inference_script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
-        self.python_cmd = os.environ.get('VALUE_AGENT_PYTHON', _find_inference_python())
-        self.infer_client = _PersistentInferenceClient(
-            python_cmd=self.python_cmd,
-            inference_script=self.inference_script,
-            timeout_sec=2.8,
-        )
-        self.cached_model = None
-        if os.environ.get('WEB_INPROCESS_FASTPATH', '').lower() in ('1', 'true', 'yes'):
-            self._init_cached_model()
-        self._warm_up_worker()
-
-    def _warm_up_worker(self):
-        """Warm up persistent inference process in the background (non-blocking).
-
-        Uses a temporary client so warm-up model loading does not contend on the
-        live inference client lock used by gameplay requests.
-        """
-        def _do_warmup():
-            warm_client = _PersistentInferenceClient(
-                python_cmd=self.python_cmd,
-                inference_script=self.inference_script,
-                timeout_sec=self.infer_client.timeout_sec,
-            )
-            payload = {
-                'model_path': self.model_path,
-                'model_kind': self.model_kind,
-                'observation': np.zeros(135, dtype=np.float32).tolist(),
-                'legal_actions_count': 1,
-            }
-            try:
-                warm_client.predict_action_idx(payload, timeout_sec=40.0)
-                old_client = self.infer_client
-                self.infer_client = warm_client
-                old_client.close()
-                print('ScoreBasedPPOOpponent: persistent inference worker warmed up.')
-            except Exception as exc:
-                warm_client.close()
-                print(f'Warning: value worker warmup failed ({exc}); will use fallback when needed.')
-        threading.Thread(target=_do_warmup, daemon=True).start()
-
-    def _init_cached_model(self):
-        """Warm-load model once to avoid per-step subprocess+load overhead."""
-        try:
-            os.environ.setdefault('KMP_DUPLICATE_LIB_OK', 'TRUE')
-            os.environ.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
-            self.cached_model = _try_load_cached_model(
-                model_path=self.model_path,
-                model_kind=self.model_kind,
-                obs_size=135,
-                action_space_size=200,
-            )
-            print(f'ScoreBasedPPOOpponent: in-process model loaded from {self.model_path}')
-        except Exception as exc:
-            self.cached_model = None
-            print(f'Warning: in-process value model load failed ({exc}); fallback to subprocess inference.')
-
-    def _predict_action_idx(self, obs, legal_actions_count):
-        """Predict action index using fast in-process model when available."""
-        if self.cached_model is None:
-            return None
-
-        if self.model_kind == 'maskable':
-            action_mask = np.zeros(200, dtype=bool)
-            action_mask[:max(0, min(int(legal_actions_count), 200))] = True
-            action, _ = self.cached_model.predict(obs, action_masks=action_mask, deterministic=True)
-        else:
-            action, _ = self.cached_model.predict(obs, deterministic=True)
-
-        return int(np.asarray(action).squeeze())
+        self.python_cmd = _find_value_inference_python()
+        self.strict_inference = True
+        print(f'ScoreBasedPPOOpponent: model={self.model_path} python={self.python_cmd}')
 
     def choose_web_action(self, game_env_obj):
         game_env_obj.update_actions()
@@ -572,14 +607,6 @@ class ScoreBasedPPOOpponent:
         state = game_env_obj.current_state_of_the_game
         obs = self.vectorizer.vectorize(state, player_id=state.active_player_id, turn_count=0)
 
-        # Fast path: in-process model prediction (same model, no logic change).
-        try:
-            action_idx = self._predict_action_idx(obs, len(legal_actions))
-            if action_idx is not None and 0 <= action_idx < len(legal_actions):
-                return legal_actions[action_idx]
-        except Exception as exc:
-            print(f'Warning: in-process value prediction failed ({exc}); fallback to subprocess.')
-
         payload = {
             'model_path': self.model_path,
             'model_kind': self.model_kind,
@@ -587,20 +614,11 @@ class ScoreBasedPPOOpponent:
             'legal_actions_count': len(legal_actions),
         }
 
-        # Fast path: persistent inference worker with model cache in subprocess.
         try:
-            action_idx = self.infer_client.predict_action_idx(payload)
-            if 0 <= action_idx < len(legal_actions):
-                return legal_actions[action_idx]
-        except Exception as exc:
-            print(f'Warning: persistent value inference failed ({exc}); fallback to one-shot subprocess.')
-
-        env = os.environ.copy()
-        env.setdefault('LANG', 'en_US.UTF-8')
-        env.setdefault('LC_ALL', 'en_US.UTF-8')
-        env.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
-
-        try:
+            env = os.environ.copy()
+            env.setdefault('LANG', 'en_US.UTF-8')
+            env.setdefault('LC_ALL', 'en_US.UTF-8')
+            env.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
             completed = subprocess.run(
                 [self.python_cmd, self.inference_script],
                 input=json.dumps(payload),
@@ -608,16 +626,15 @@ class ScoreBasedPPOOpponent:
                 capture_output=True,
                 check=True,
                 env=env,
-                timeout=25,
+                timeout=120,
             )
             result = json.loads(completed.stdout)
             action_idx = int(result.get('action_idx', 0))
         except Exception as exc:
-            print(f'Warning: score PPO inference failed ({exc}); using heuristic fallback action.')
-            return _choose_fallback_action(legal_actions)
+            raise RuntimeError(f'score PPO inference failed: {exc}') from exc
 
         if action_idx < 0 or action_idx >= len(legal_actions):
-            return _choose_fallback_action(legal_actions)
+            raise RuntimeError(f'value model returned invalid action index {action_idx} for {len(legal_actions)} legal actions')
 
         return legal_actions[action_idx]
 
@@ -626,18 +643,18 @@ class ScoreBasedPPOOpponent:
 
 
 def _resolve_event_model_info():
-    """Use the fixed v3_1m_1000000_steps.zip model for the event-based opponent.
+    """Use the fixed v3_1m_1300000_steps.zip model for the event-based opponent.
 
     This artifact is loaded via PPO (non-maskable) for compatibility.
     """
     root = Path(project_root)
-    model_path = root / 'project_event_based' / 'notebooks' / 'models' / 'v3_1m_1000000_steps.zip'
+    model_path = root / 'project_event_based' / 'notebooks' / 'models' / 'v3_1m_1300000_steps.zip'
     if not model_path.exists():
         raise FileNotFoundError(f'Event model not found: {model_path}')
     return {
         'model_path': str(model_path),
         'model_kind': 'maskable',
-        'model_source': 'v3_1m_1000000_steps',
+        'model_source': 'v3_1m_1300000_steps',
     }
 
 
@@ -651,23 +668,28 @@ class EventBasedPPOOpponent:
         self.inference_script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
         self.python_cmd = _find_event_inference_python()
         self.vectorizer = SplendorStateVectorizer()
+        self.infer_timeout_sec = float(os.environ.get('EVENT_INFERENCE_TIMEOUT_SEC', '12'))
+        self.first_infer_timeout_sec = float(os.environ.get('EVENT_FIRST_INFERENCE_TIMEOUT_SEC', '45'))
+        self._worker_warmed = False
+        self._first_move_pending = True
         # Keep the same event-history signal used during training.
         self.last_event = np.zeros(9, dtype=np.float32)
         self.infer_client = _PersistentInferenceClient(
             python_cmd=self.python_cmd,
             inference_script=self.inference_script,
-            timeout_sec=4,
+            timeout_sec=self.infer_timeout_sec,
         )
         self.cached_model = None
         if os.environ.get('WEB_INPROCESS_FASTPATH', '').lower() in ('1', 'true', 'yes'):
             self._init_cached_model()
-        # Disable proactive warm-up for event model: loading can be heavy and
-        # hurts first-turn responsiveness when it contends with live requests.
+        # Warm up in background so first AI turn is less likely to timeout.
+        #self._warm_up_worker()
         print(f'EventBasedPPOOpponent: model={self.model_path}')
 
     def reset_context(self):
         """Reset per-game recurrent context (event history tail)."""
         self.last_event = np.zeros(9, dtype=np.float32)
+        self._first_move_pending = True
 
     def _warm_up_worker(self):
         """Warm up persistent inference process in the background (non-blocking).
@@ -692,10 +714,11 @@ class EventBasedPPOOpponent:
                 old_client = self.infer_client
                 self.infer_client = warm_client
                 old_client.close()
+                self._worker_warmed = True
                 print('EventBasedPPOOpponent: persistent inference worker warmed up.')
             except Exception as exc:
                 warm_client.close()
-                print(f'Warning: event worker warmup failed ({exc}); will use fallback when needed.')
+                print(f'Warning: event worker warmup failed ({exc}); will keep lazy init on first request.')
         threading.Thread(target=_do_warmup, daemon=True).start()
 
     def _init_cached_model(self):
@@ -801,6 +824,7 @@ class EventBasedPPOOpponent:
             if action_idx is not None and 0 <= action_idx < len(legal_actions):
                 chosen = legal_actions[action_idx]
                 self._update_last_event(state, chosen)
+                self._first_move_pending = False
                 return chosen
         except Exception as exc:
             print(f'Warning: in-process event prediction failed ({exc}); fallback to subprocess.')
@@ -814,15 +838,16 @@ class EventBasedPPOOpponent:
 
         # Fast path: persistent inference worker with model cache in subprocess.
         try:
-            action_idx = self.infer_client.predict_action_idx(payload)
+            timeout_sec = 0.0 if self._first_move_pending else self.infer_timeout_sec
+            action_idx = self.infer_client.predict_action_idx(payload, timeout_sec=timeout_sec)
             if 0 <= action_idx < len(legal_actions):
+                self._worker_warmed = True
                 chosen = legal_actions[action_idx]
                 self._update_last_event(state, chosen)
+                self._first_move_pending = False
                 return chosen
         except Exception as exc:
-            print(f'Warning: persistent event inference failed ({exc}); using heuristic fallback action.')
-            self.last_event = np.zeros(9, dtype=np.float32)
-            return _choose_fallback_action(legal_actions)
+            raise RuntimeError(f'event PPO inference failed: {exc}') from exc
 
 
 def _get_opponent_label():
@@ -939,8 +964,7 @@ def init_game(selected_opponent_type='value'):
                 else:
                     _opponent_cache['value'] = ScoreBasedPPOOpponent()
             except Exception as exc:
-                print(f'Warning: could not load {opponent_type} PPO model ({exc}); falling back to random opponent.')
-                _opponent_cache[opponent_type] = None
+                raise RuntimeError(f'could not load {opponent_type} PPO model: {exc}') from exc
         ai_agent = _opponent_cache[opponent_type]
         if ai_agent is not None and hasattr(ai_agent, 'reset_context'):
             try:
@@ -1046,7 +1070,10 @@ def new_game():
         use_ai_flag = data.get('use_ai', True)
         selected_opponent_type = 'value' if use_ai_flag else 'random'
 
-    state = init_game(selected_opponent_type)
+    try:
+        state = init_game(selected_opponent_type)
+    except Exception as exc:
+        return jsonify({'error': f'Failed to initialize game: {exc}'}), 500
     return jsonify(state)
 
 @app.route('/make_move', methods=['POST'])
@@ -1078,7 +1105,11 @@ def make_move():
 
     # AI's turn
     if use_ai and ai_agent is not None:
-        ai_action = _choose_ai_action_with_timeout(ai_agent, game_env, legal_actions, timeout_sec=8.0)
+        try:
+            timeout_sec = _resolve_ai_action_timeout(ai_agent)
+            ai_action = _choose_ai_action_with_timeout(ai_agent, game_env, legal_actions, timeout_sec=timeout_sec)
+        except Exception as exc:
+            return jsonify({'error': f'AI model inference failed: {exc}'}), 500
     else:
         # Random opponent
         import random
@@ -1110,4 +1141,4 @@ if __name__ == '__main__':
     static_dir = os.path.join(os.path.dirname(__file__), 'static')
     os.makedirs(static_dir, exist_ok=True)
 
-    app.run(debug=True, host='0.0.0.0', port=8080, use_reloader=False)
+    app.run(debug=True, host='0.0.0.0', port=8081, use_reloader=False)

@@ -59,6 +59,24 @@ _np_rand_pickle.__bit_generator_ctor = _compat_bit_gen_ctor
 os.environ.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
 
 
+def _install_sb3_compat_shims():
+    """Install SB3 compatibility shims required by newer saved models."""
+    try:
+        from stable_baselines3.common import utils as sb3_utils
+
+        if not hasattr(sb3_utils, 'FloatSchedule'):
+            class FloatSchedule:
+                def __init__(self, value_schedule):
+                    self.value_schedule = value_schedule
+
+                def __call__(self, progress_remaining):
+                    return float(self.value_schedule(progress_remaining))
+
+            sb3_utils.FloatSchedule = FloatSchedule
+    except Exception:
+        pass
+
+
 def _build_custom_objects(payload, obs_size):
     """Return SB3 custom_objects to bypass deserialization failures caused by
     SB3/gymnasium version mismatches between training and inference environments."""
@@ -79,20 +97,15 @@ def _load_model(payload, obs_size):
     """Load a PPO/MaskablePPO model with compatibility custom objects."""
     model_path = payload['model_path']
     model_kind = payload['model_kind']
+    _install_sb3_compat_shims()
     custom_objects = _build_custom_objects(payload, obs_size)
 
     if model_kind == 'maskable':
         from sb3_contrib import MaskablePPO
-        try:
-            return MaskablePPO.load(model_path)
-        except Exception:
-            return MaskablePPO.load(model_path, custom_objects=custom_objects)
+        return MaskablePPO.load(model_path, custom_objects=custom_objects)
 
     from stable_baselines3 import PPO
-    try:
-        return PPO.load(model_path)
-    except Exception:
-        return PPO.load(model_path, custom_objects=custom_objects)
+    return PPO.load(model_path, custom_objects=custom_objects)
 
 
 def _predict_action(payload, model_cache=None):
@@ -117,8 +130,9 @@ def _predict_action(payload, model_cache=None):
             model_cache[cache_key] = model
 
     if model_kind == 'maskable':
-        action_mask = np.zeros(200, dtype=bool)
-        action_mask[:max(0, min(legal_actions_count, 200))] = True
+        action_space_size = int(payload.get('action_space_size', 200))
+        action_mask = np.zeros(action_space_size, dtype=bool)
+        action_mask[:max(0, min(legal_actions_count, action_space_size))] = True
         t_pred0 = time.time()
         action, _ = model.predict(observation, action_masks=action_mask, deterministic=True)
         print(f'[infer] predict_done maskable sec={time.time()-t_pred0:.3f}', file=sys.stderr, flush=True)

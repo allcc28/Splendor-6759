@@ -14,7 +14,7 @@ from gym_splendor_code.envs.mechanics.action import (
 )
 from gym_splendor_code.envs.mechanics.enums import GemColor
 from gym_splendor_code.envs.mechanics.state import State
-from reward.event_based_reward import EVENT_NAMES
+from ..reward.event_based_reward import EVENT_NAMES
 
 
 GEM_ORDER = (
