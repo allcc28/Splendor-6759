@@ -43,6 +43,57 @@ try:
 except ImportError:
     _event_detect = None
 
+
+def _state_to_event_training_raw135(state_obj, player_id: int):
+    """135-d raw obs matching project_event_based SplendorGymWrapper fallback (40-d event vec + zero pad).
+
+    This mirrors ``splendor_gym_wrapper.SplendorStateVectorizer`` when ``state_vectorizer`` is absent:
+    first 40 dims from ``vectorize_state_event``, indices 40+ are zeros (same as training pipeline).
+    """
+    if _event_vectorize is None:
+        return np.zeros(135, dtype=np.float32)
+
+    board_gems = [0] * 6
+    try:
+        bg = getattr(state_obj.board, 'gems_on_board', None)
+        if bg is None:
+            bg = getattr(state_obj.board, 'tokens_on_board', None)
+        if bg is not None:
+            board_gems = list(bg)[:6]
+    except Exception:
+        pass
+
+    players = []
+    try:
+        hands = list(state_obj.list_of_players_hands)
+    except Exception:
+        hands = []
+    for p in hands:
+        try:
+            score = p.number_of_my_points()
+        except Exception:
+            score = getattr(p, 'score', 0)
+        try:
+            gems = list(getattr(p, 'gems_on_hand', getattr(p, 'tokens', [0] * 6)))[:6]
+        except Exception:
+            gems = [0] * 6
+        try:
+            discounts = list(getattr(p, 'discounts', getattr(p, 'permanent_discounts', [0] * 6)))[:6]
+        except Exception:
+            discounts = [0] * 6
+        try:
+            reserved = int(len(getattr(p, 'reserved_cards', [])))
+        except Exception:
+            reserved = int(getattr(p, 'reserved_count', 0))
+        players.append({'score': score, 'gems': gems, 'discounts': discounts, 'reserved_count': reserved})
+    while len(players) < 2:
+        players.append({'score': 0, 'gems': [0] * 6, 'discounts': [0] * 6, 'reserved_count': 0})
+
+    state_dict = {'board': {'gems': board_gems}, 'players': players}
+    vec = np.zeros(135, dtype=np.float32)
+    vec[:40] = np.asarray(_event_vectorize(state_dict, active_player_index=int(player_id)), dtype=np.float32).reshape(-1)[:40]
+    return vec.astype(np.float32)
+
 from src.utils.splendor_gym_wrapper import SplendorGymWrapper
 from gym_splendor_code.envs.splendor import SplendorEnv
 from src.utils.state_vectorizer import SplendorStateVectorizer
@@ -451,11 +502,53 @@ def _supports_float_schedule(python_cmd: str) -> bool:
         return False
 
 
-def _find_event_inference_python():
+def _supports_event_inference_runtime(python_cmd: str, model_path: str) -> bool:
+    """Check whether an interpreter can run a minimal event inference end-to-end."""
+    if not python_cmd or not os.path.isfile(python_cmd):
+        return False
+    if not model_path or not os.path.isfile(model_path):
+        return False
+
+    script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
+    if not os.path.isfile(script):
+        return False
+
+    payload = {
+        'model_path': model_path,
+        'model_kind': 'maskable',
+        'observation': np.zeros(109, dtype=np.float32).tolist(),
+        'legal_actions_count': 1,
+    }
+    env = os.environ.copy()
+    env.setdefault('LANG', 'en_US.UTF-8')
+    env.setdefault('LC_ALL', 'en_US.UTF-8')
+    env.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
+
+    try:
+        completed = subprocess.run(
+            [python_cmd, script],
+            input=json.dumps(payload),
+            text=True,
+            capture_output=True,
+            timeout=25,
+            check=False,
+            env=env,
+        )
+        if completed.returncode != 0 or not completed.stdout:
+            return False
+        data = json.loads(completed.stdout)
+        action_idx = int(data.get('action_idx', -1))
+        return action_idx >= 0
+    except Exception:
+        return False
+
+
+def _find_event_inference_python(model_path: str = None):
     """Resolve interpreter for event-model inference without env-name assumptions."""
     preferred = os.environ.get('EVENT_AGENT_PYTHON')
     if preferred and os.path.isfile(preferred) and _supports_float_schedule(preferred):
-        return preferred
+        if model_path is None or _supports_event_inference_runtime(preferred, model_path):
+            return preferred
 
     candidates = []
 
@@ -490,13 +583,25 @@ def _find_event_inference_python():
     # Keep generic fallback for continuity.
     candidates.append(_find_inference_python())
 
+    # Runtime health-check can be expensive; cap candidate attempts.
+    max_candidates = 8
     seen = set()
+    checked = 0
     for p in candidates:
         if not p or p in seen:
             continue
         seen.add(p)
-        if _supports_float_schedule(p):
+        if not _supports_float_schedule(p):
+            continue
+
+        if model_path is None:
             return p
+
+        checked += 1
+        if _supports_event_inference_runtime(p, model_path):
+            return p
+        if checked >= max_candidates:
+            break
 
     return _find_inference_python()
 
@@ -666,8 +771,7 @@ class EventBasedPPOOpponent:
         self.model_path = model_info['model_path']
         self.model_kind = model_info['model_kind']
         self.inference_script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
-        self.python_cmd = _find_event_inference_python()
-        self.vectorizer = SplendorStateVectorizer()
+        self.python_cmd = _find_event_inference_python(self.model_path)
         self.infer_timeout_sec = float(os.environ.get('EVENT_INFERENCE_TIMEOUT_SEC', '12'))
         self.first_infer_timeout_sec = float(os.environ.get('EVENT_FIRST_INFERENCE_TIMEOUT_SEC', '45'))
         self._worker_warmed = False
@@ -752,11 +856,9 @@ class EventBasedPPOOpponent:
         return int(np.asarray(action).squeeze())
 
     def _build_raw_obs135(self, state):
-        """Build the base 135-d observation from the active-player perspective."""
-        actor_id = state.active_player_id
+        """135-d raw obs aligned with project_event_based training (40-d event prefix + zero pad)."""
         try:
-            raw = self.vectorizer.vectorize(state, player_id=actor_id, turn_count=0)
-            return np.asarray(raw, dtype=np.float32).reshape(-1)[:135]
+            return _state_to_event_training_raw135(state, int(state.active_player_id))
         except Exception:
             return np.zeros(135, dtype=np.float32)
 
@@ -792,19 +894,28 @@ class EventBasedPPOOpponent:
         gap60 = self._get_gem_gap_features(raw135)
         return np.concatenate([state40, gap60, self.last_event]).astype(np.float32)
 
-    def _update_last_event(self, state_before_action, chosen_action):
-        """Update the 9-d event tail to mirror EventRewardWrapper behavior."""
+    def _update_last_event_round(self, state_before_human, human_action, state_after_ai):
+        """One event tail per human+AI round, matching train_maskable + SplendorGymWrapper.
+
+        Training wraps one learner step that runs the learner action then the opponent; the returned
+        135-d obs is after both. We mirror that with state_before_human (human to act), human_action,
+        and state_after_ai (after AI replied). prev/next 40-d slices use learner perspective (player 0),
+        matching EventRewardWrapper + fixed player_id in SplendorGymWrapper._get_observation.
+        """
         if _event_detect is None:
             self.last_event = np.zeros(9, dtype=np.float32)
             return
 
-        prev_vec = self._build_raw_obs135(state_before_action)[:40]
+        learner_id = 0
+        prev_vec = _state_to_event_training_raw135(state_before_human, learner_id)[:40]
+        next_vec = _state_to_event_training_raw135(state_after_ai, learner_id)[:40]
+
+        if np.array_equal(prev_vec, next_vec):
+            self.last_event = np.zeros(9, dtype=np.float32)
+            return
 
         try:
-            state_copy = copy.deepcopy(state_before_action)
-            chosen_action.execute(state_copy)
-            next_vec = self._build_raw_obs135(state_copy)[:40]
-            ev = _event_detect(prev_vec, chosen_action, next_vec)
+            ev = _event_detect(prev_vec, human_action, next_vec)
             self.last_event = np.asarray(ev, dtype=np.float32)[:9]
         except Exception:
             self.last_event = np.zeros(9, dtype=np.float32)
@@ -823,7 +934,6 @@ class EventBasedPPOOpponent:
             action_idx = self._predict_action_idx(obs, len(legal_actions))
             if action_idx is not None and 0 <= action_idx < len(legal_actions):
                 chosen = legal_actions[action_idx]
-                self._update_last_event(state, chosen)
                 self._first_move_pending = False
                 return chosen
         except Exception as exc:
@@ -843,7 +953,6 @@ class EventBasedPPOOpponent:
             if 0 <= action_idx < len(legal_actions):
                 self._worker_warmed = True
                 chosen = legal_actions[action_idx]
-                self._update_last_event(state, chosen)
                 self._first_move_pending = False
                 return chosen
         except Exception as exc:
@@ -1090,6 +1199,7 @@ def make_move():
     if action_idx is None or action_idx < 0 or action_idx >= len(legal_actions):
         return jsonify({'error': 'Invalid action index'})
 
+    state_before_human = copy.deepcopy(game_env.current_state_of_the_game)
     # Execute human move
     action = legal_actions[action_idx]
     obs, reward, done, info = game_env.step('deterministic', action, return_observation=False)
@@ -1115,15 +1225,24 @@ def make_move():
         import random
         ai_action = random.choice(legal_actions) if legal_actions else None
 
+    state_after_ai = None
     if ai_action is None:
         # No action possible
         game_done = True
         winner = 'human'
     else:
         obs, reward, done, info = game_env.step('deterministic', ai_action, return_observation=False)
+        state_after_ai = game_env.current_state_of_the_game
         # Update legal actions after AI move
         game_env.update_actions()
         _update_final_round_status()
+
+    if opponent_type == 'event' and ai_agent is not None and state_after_ai is not None:
+        try:
+            if hasattr(ai_agent, '_update_last_event_round'):
+                ai_agent._update_last_event_round(state_before_human, action, state_after_ai)
+        except Exception:
+            pass
 
     _persist_game_result_if_needed()
 
