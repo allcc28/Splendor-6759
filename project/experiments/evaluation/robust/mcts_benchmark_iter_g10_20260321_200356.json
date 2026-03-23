@@ -1,0 +1,147 @@
+{
+  "meta": {
+    "timestamp": "2026-03-21T20:03:56",
+    "games_per_matchup": 10,
+    "iterations": [
+      10
+    ],
+    "seed": 42,
+    "exploration": 0.4,
+    "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+    "skipped": [
+      {
+        "preset": "guided_heura",
+        "iteration": 10,
+        "reason": "No module named 'gin'"
+      }
+    ]
+  },
+  "results": [
+    {
+      "path": "local-duel",
+      "mcts": "pure_dummy@10",
+      "opponent": "RandomAgent - uniform_on_types ",
+      "games": 10,
+      "wins": 3,
+      "losses": 7,
+      "draws": 0,
+      "win_rate": 30.0,
+      "win_rate_ci95": [
+        10.7791267406301,
+        60.322185253885465
+      ],
+      "mcts_first": {
+        "games": 7,
+        "wins": 1,
+        "win_rate": 14.285714285714286,
+        "win_rate_ci95": [
+          2.5679624344743552,
+          51.31278292743189
+        ]
+      },
+      "mcts_second": {
+        "games": 3,
+        "wins": 2,
+        "win_rate": 66.66666666666667,
+        "win_rate_ci95": [
+          20.765960080204763,
+          93.85080552796038
+        ]
+      },
+      "agent_avg_points": 2.9,
+      "opponent_avg_points": 11.8,
+      "agent_avg_reward": null,
+      "opponent_avg_reward": null,
+      "terminal_games": 10,
+      "non_terminal_games": 0,
+      "winner_below_15_count": 3,
+      "wall_time_sec": 228.52171206474304,
+      "sec_per_game": 22.852171206474303,
+      "matchup": "MCTS[pure_dummy,iter=10] vs random_uniform_on_types"
+    },
+    {
+      "path": "local-duel",
+      "mcts": "pure_dummy@10",
+      "opponent": "Greedy-value",
+      "games": 10,
+      "wins": 0,
+      "losses": 10,
+      "draws": 0,
+      "win_rate": 0.0,
+      "win_rate_ci95": [
+        0.0,
+        27.75327998628892
+      ],
+      "mcts_first": {
+        "games": 4,
+        "wins": 0,
+        "win_rate": 0.0,
+        "win_rate_ci95": [
+          0.0,
+          48.98908364545973
+        ]
+      },
+      "mcts_second": {
+        "games": 6,
+        "wins": 0,
+        "win_rate": 0.0,
+        "win_rate_ci95": [
+          0.0,
+          39.03342879021653
+        ]
+      },
+      "agent_avg_points": 0.8,
+      "opponent_avg_points": 17.4,
+      "agent_avg_reward": null,
+      "opponent_avg_reward": null,
+      "terminal_games": 10,
+      "non_terminal_games": 0,
+      "winner_below_15_count": 0,
+      "wall_time_sec": 258.98516964912415,
+      "sec_per_game": 25.898516964912414,
+      "matchup": "MCTS[pure_dummy,iter=10] vs greedy_value"
+    },
+    {
+      "path": "gym-wrapper",
+      "games": 10,
+      "wins": 1,
+      "losses": 8,
+      "draws": 1,
+      "win_rate": 10.0,
+      "win_rate_ci95": [
+        1.7876213095072868,
+        40.41500267952385
+      ],
+      "mcts_first": {
+        "games": 5,
+        "wins": 1,
+        "win_rate": 20.0,
+        "win_rate_ci95": [
+          3.6224108632430085,
+          62.446537023747474
+        ]
+      },
+      "mcts_second": {
+        "games": 5,
+        "wins": 0,
+        "win_rate": 0.0,
+        "win_rate_ci95": [
+          0.0,
+          43.44824647831748
+        ]
+      },
+      "agent_avg_points": 4.3,
+      "opponent_avg_points": 15.2,
+      "game_length_mean": 46.6,
+      "mcts_name": "Single Process MCTS",
+      "opponent": "PPO/MaskablePPO",
+      "winner_below_15_count": 0,
+      "wall_time_sec": 185.06580471992493,
+      "sec_per_game": 18.506580471992493,
+      "note": "MCTS win/loss is derived by inverting PPO perspective from wrapper eval.",
+      "mcts": "pure_dummy@10",
+      "matchup": "MCTS[pure_dummy,iter=10] vs PPO",
+      "ppo_model_type": "MaskablePPO"
+    }
+  ]
+}

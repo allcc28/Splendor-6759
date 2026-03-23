@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "timestamp": "2026-03-21T17:01:09",
+    "games_per_matchup": 1,
+    "iterations": [
+      10
+    ],
+    "seed": 42,
+    "exploration": 0.4,
+    "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+    "skipped": [
+      {
+        "preset": "guided_heura",
+        "iteration": 10,
+        "reason": "No module named 'gin'"
+      }
+    ]
+  },
+  "results": [
+    {
+      "path": "local-duel",
+      "mcts": "pure_dummy@10",
+      "opponent": "RandomAgent - uniform_on_types ",
+      "games": 1,
+      "wins": 1,
+      "losses": 0,
+      "draws": 0,
+      "win_rate": 100.0,
+      "agent_avg_points": 15.0,
+      "opponent_avg_points": 13.0,
+      "agent_avg_reward": null,
+      "opponent_avg_reward": null,
+      "wall_time_sec": 36.62331676483154,
+      "sec_per_game": 36.62331676483154,
+      "matchup": "MCTS[pure_dummy,iter=10] vs random_uniform_on_types"
+    },
+    {
+      "path": "local-duel",
+      "mcts": "pure_dummy@10",
+      "opponent": "Greedy-value",
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "win_rate": 0.0,
+      "agent_avg_points": 3.0,
+      "opponent_avg_points": 15.0,
+      "agent_avg_reward": null,
+      "opponent_avg_reward": null,
+      "wall_time_sec": 22.95476722717285,
+      "sec_per_game": 22.95476722717285,
+      "matchup": "MCTS[pure_dummy,iter=10] vs greedy_value"
+    },
+    {
+      "path": "gym-wrapper",
+      "games": 1,
+      "wins": 0,
+      "losses": 1,
+      "draws": 0,
+      "win_rate": 0.0,
+      "agent_avg_points": 8.0,
+      "opponent_avg_points": 15.0,
+      "game_length_mean": 55.0,
+      "mcts_name": "Single Process MCTS",
+      "opponent": "PPO/MaskablePPO",
+      "wall_time_sec": 14.195810794830322,
+      "sec_per_game": 14.195810794830322,
+      "note": "MCTS win/loss is derived by inverting PPO perspective from wrapper eval.",
+      "mcts": "pure_dummy@10",
+      "matchup": "MCTS[pure_dummy,iter=10] vs PPO",
+      "ppo_model_type": "MaskablePPO"
+    }
+  ]
+}
