@@ -1,68 +1,51 @@
-# Project Structure (IFT6759 Splendor)
+# Project Structure
 
-This folder organizes the work described in the project plan into clear phases and modules.
+This `project/` folder is the active RL workspace. If you want to understand the repo quickly, start here instead of browsing the whole tree.
 
-## Top-Level Layout
-- `project/configs/`: All experiment configs (env, reward shaping, MCTS, training).
-- `project/src/`: Core implementation (agents, reward shaping, MCTS, NN, training, evaluation).
-- `project/experiments/`: Phase-based experiment runs and artifacts.
-- `project/data/`: Raw/processed/self-play/supervised datasets.
-- `project/outputs/`: Figures, checkpoints, and reports.
-- `project/logs/`: Training and evaluation logs.
-- `project/scripts/`: Entry scripts for training, evaluation, and tournaments.
-- `project/notebooks/`: Exploration and analysis notebooks.
-- `project/docs/`: Design notes, results, and meeting notes.
-- `project/tests/`: Unit/integration tests.
+## Active Areas
 
-## Phase Mapping (from plan)
-- **Phase 1 (Weeks 1–3)**
-  - Baselines + reward shaping: `src/agents/score_based`, `src/agents/event_based`, `src/reward`
-  - Experiment configs: `configs/reward`, `configs/training`
-  - Runs: `experiments/phase1_reward_shaping`
+- `project/src/`: active environment wrappers, reward shaping logic, callbacks, and PPO agent code.
+- `project/configs/training/`: versioned training configs for score-based, event-based, and curriculum runs.
+- `project/scripts/`: canonical entrypoints for training, evaluation, diagnostics, and experiment indexing.
+- `project/tests/`: focused tests for the current RL pipeline.
+- `project/docs/development/`: specs, progress notes, ADRs, sprint notes, and dev logs.
 
-- **Phase 2 (Weeks 4–7)**
-  - AlphaZero components: `src/agents/alphazero`, `src/mcts`, `src/nn`, `src/training`
-  - Configs: `configs/mcts`, `configs/training`
-  - Runs: `experiments/phase2_alphazero`
+## Experiment Artifacts
 
-- **Phase 3 (Weeks 8–10)**
-  - Tournament/evaluation: `src/evaluation`, `scripts`, `experiments/phase3_tournament`
-  - Outputs: `outputs/figures`, `outputs/reports`
+- `project/logs/`: raw run directories created by training scripts.
+  - Each run folder is the source of truth for checkpoints and run-local `config.yaml`.
+  - Typical contents: `final_model.zip`, `eval/best_model.zip`, TensorBoard files, console logs.
+- `project/experiments/evaluation/`: machine-readable evaluation outputs and generated reports.
+  - `robust/ppo_robust/score_based/`: official score-based robust evals.
+  - `robust/ppo_robust/event_based/`: official event-based robust evals.
+  - `robust/mcts/canonical/`: citation-worthy MCTS benchmark runs.
+  - `robust/mcts/archive/`: smoke tests and intermediate MCTS diagnostics.
+  - other sibling folders: one-off evaluation families such as `maskable_ppo_eval/` and `behavior_metrics/`.
+- `project/experiments/reports/`: curated summaries and generated indices.
+  - `EXPERIMENT_INDEX.md` is the main lookup table.
+  - `EXPERIMENT_INDEX.json` is the machine-readable companion.
 
-## Conventions
-- Training entrypoints should live in `project/scripts/`.
-- Configs are versioned in `project/configs/` and referenced by scripts.
-- All generated artifacts go to `project/outputs/` and `project/logs/`.
+## Fast Navigation
 
-## Environment Setup (RL Pipeline)
+- Current evaluation entry point: `project/experiments/evaluation/LATEST.md`
+- Current experiment index: `project/experiments/reports/EXPERIMENT_INDEX.md`
+- Robust evaluation layout notes: `project/experiments/evaluation/robust/README.md`
 
-Recommended Python version: `3.10` (tested) or `3.11`.
-(`stable-baselines3` + CUDA stack may fail on newer interpreters like 3.13.)
+## Working Rules
 
-Install project dependencies from repo root:
+- New training runs should write only to `project/logs/<run_name>/`.
+- New robust PPO evaluations should be generated through `project/scripts/evaluate_robust.py`, which routes files into `robust/ppo_robust/<family>/`.
+- New MCTS benchmarks should be generated through `project/scripts/benchmark_mcts.py`, which routes files into `robust/mcts/<bucket>/`.
+- After adding or moving experiment artifacts, refresh the index with:
 
 ```bash
-python -m pip install -r project/requirements.txt
-```
-
-For development/testing:
-
-```bash
-python -m pip install -r project/requirements-dev.txt
-```
-
-Run tests:
-
-```bash
-pytest -q project/tests
+python project/scripts/refresh_experiment_index.py
 ```
 
 ## Canonical Entrypoints
 
-- Train PPO score-based baseline: `project/scripts/train_score_based.py`
-- Train MaskablePPO variant: `project/scripts/train_maskable_ppo.py`
-- Evaluate PPO (current canonical evaluator): `project/scripts/evaluate_score_based_v3.py`
-
-Deprecated evaluator:
-
-- `project/scripts/evaluate_score_based.py` (kept for history, do not use)
+- Train MaskablePPO: `project/scripts/train_maskable_ppo.py`
+- Evaluate MaskablePPO: `project/scripts/evaluate_maskable_ppo.py`
+- Run robust evaluation: `project/scripts/evaluate_robust.py`
+- Benchmark MCTS: `project/scripts/benchmark_mcts.py`
+- Refresh experiment index: `project/scripts/refresh_experiment_index.py`

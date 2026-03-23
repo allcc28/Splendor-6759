@@ -1,0 +1,420 @@
+{
+  "generated_at": "2026-03-23T11:46:24",
+  "recommended": {
+    "latest_training_run": {
+      "run_name": "maskable_ppo_event_e5_v6_candidate_20260320_220734",
+      "run_path": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734",
+      "final_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/config.yaml",
+      "last_modified": "2026-03-21T02:00:17"
+    },
+    "best_robust_model": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model",
+    "best_robust_eval": "project/experiments/evaluation/robust/ppo_robust/score_based/robust_eval_v4a_20260308_143224_report.md",
+    "best_composite_score": 87.26666666666667,
+    "best_score_based_eval": "project/experiments/evaluation/robust/ppo_robust/score_based/robust_eval_v4a_20260308_143224_report.md",
+    "best_event_based_eval": "project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_v5_event_20260309_211510_report.md",
+    "canonical_mcts_eval": "project/experiments/evaluation/robust/mcts/canonical/mcts_benchmark_overnight_g500_20260322_051530.md"
+  },
+  "log_runs": [
+    {
+      "run_name": "maskable_ppo_event_e5_v6_candidate_20260320_220734",
+      "run_path": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734",
+      "final_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/config.yaml",
+      "last_modified": "2026-03-21T02:00:17"
+    },
+    {
+      "run_name": "maskable_ppo_event_e4_mixed_opp_20260319_212140",
+      "run_path": "project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140",
+      "final_model": "project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/config.yaml",
+      "last_modified": "2026-03-20T01:18:46"
+    },
+    {
+      "run_name": "maskable_ppo_event_e3_lite_reward_20260319_115615",
+      "run_path": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615",
+      "final_model": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/config.yaml",
+      "last_modified": "2026-03-19T13:06:34"
+    },
+    {
+      "run_name": "maskable_ppo_event_e3_lite_reward_20260319_114834",
+      "run_path": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834",
+      "final_model": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/config.yaml",
+      "last_modified": "2026-03-19T12:59:21"
+    },
+    {
+      "run_name": "maskable_ppo_event_e3_lite_reward_20260319_114534",
+      "run_path": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114534",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114534/config.yaml",
+      "last_modified": "2026-03-19T11:45:35"
+    },
+    {
+      "run_name": "maskable_ppo_event_e2_stage_b_20260316_202713",
+      "run_path": "project/logs/maskable_ppo_event_e2_stage_b_20260316_202713",
+      "final_model": "project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/config.yaml",
+      "last_modified": "2026-03-17T00:05:12"
+    },
+    {
+      "run_name": "maskable_ppo_event_e1_no_gap_20260315_203357",
+      "run_path": "project/logs/maskable_ppo_event_e1_no_gap_20260315_203357",
+      "final_model": "project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/config.yaml",
+      "last_modified": "2026-03-15T21:41:22"
+    },
+    {
+      "run_name": "maskable_ppo_event_e2_no_last_event_20260310_222207",
+      "run_path": "project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207",
+      "final_model": "project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/config.yaml",
+      "last_modified": "2026-03-10T23:27:30"
+    },
+    {
+      "run_name": "maskable_ppo_event_v1_20260309_110155",
+      "run_path": "project/logs/maskable_ppo_event_v1_20260309_110155",
+      "final_model": "project/logs/maskable_ppo_event_v1_20260309_110155/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_event_v1_20260309_110155/config.yaml",
+      "last_modified": "2026-03-09T14:39:53"
+    },
+    {
+      "run_name": "maskable_ppo_event_v1_20260309_110034",
+      "run_path": "project/logs/maskable_ppo_event_v1_20260309_110034",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/maskable_ppo_event_v1_20260309_110034/config.yaml",
+      "last_modified": "2026-03-09T11:00:34"
+    },
+    {
+      "run_name": "maskable_ppo_event_v1_20260309_105825",
+      "run_path": "project/logs/maskable_ppo_event_v1_20260309_105825",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/maskable_ppo_event_v1_20260309_105825/config.yaml",
+      "last_modified": "2026-03-09T10:58:26"
+    },
+    {
+      "run_name": "maskable_ppo_v4c_curriculum_20260307_090108",
+      "run_path": "project/logs/maskable_ppo_v4c_curriculum_20260307_090108",
+      "final_model": "project/logs/maskable_ppo_v4c_curriculum_20260307_090108/final_model.zip",
+      "best_model": null,
+      "config": "project/logs/maskable_ppo_v4c_curriculum_20260307_090108/config.yaml",
+      "last_modified": "2026-03-07T19:05:00"
+    },
+    {
+      "run_name": "maskable_ppo_v4a_ent_lr_20260306_213530",
+      "run_path": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530",
+      "final_model": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/config.yaml",
+      "last_modified": "2026-03-07T01:21:24"
+    },
+    {
+      "run_name": "maskable_ppo_score_v3_20260303_183435",
+      "run_path": "project/logs/maskable_ppo_score_v3_20260303_183435",
+      "final_model": "project/logs/maskable_ppo_score_v3_20260303_183435/final_model.zip",
+      "best_model": "project/logs/maskable_ppo_score_v3_20260303_183435/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_score_v3_20260303_183435/config.yaml",
+      "last_modified": "2026-03-03T20:03:30"
+    },
+    {
+      "run_name": "maskable_ppo_score_v3_20260303_181735",
+      "run_path": "project/logs/maskable_ppo_score_v3_20260303_181735",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/maskable_ppo_score_v3_20260303_181735/config.yaml",
+      "last_modified": "2026-03-03T18:17:57"
+    },
+    {
+      "run_name": "maskable_ppo_score_v3_20260303_181142",
+      "run_path": "project/logs/maskable_ppo_score_v3_20260303_181142",
+      "final_model": null,
+      "best_model": "project/logs/maskable_ppo_score_v3_20260303_181142/eval/best_model.zip",
+      "config": "project/logs/maskable_ppo_score_v3_20260303_181142/config.yaml",
+      "last_modified": "2026-03-03T18:11:43"
+    },
+    {
+      "run_name": "ppo_score_based_v2_greedy_opp_20260225_205855",
+      "run_path": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205855",
+      "final_model": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205855/final_model.zip",
+      "best_model": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205855/eval/best_model.zip",
+      "config": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205855/config.yaml",
+      "last_modified": "2026-02-26T00:40:41"
+    },
+    {
+      "run_name": "ppo_score_based_v2_greedy_opp_20260225_205420",
+      "run_path": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205420",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205420/config.yaml",
+      "last_modified": "2026-02-25T20:54:21"
+    },
+    {
+      "run_name": "ppo_score_based_v2_greedy_opp_20260225_205341",
+      "run_path": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205341",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205341/config.yaml",
+      "last_modified": "2026-02-25T20:53:41"
+    },
+    {
+      "run_name": "ppo_score_based_v1_20260224_113524",
+      "run_path": "project/logs/ppo_score_based_v1_20260224_113524",
+      "final_model": "project/logs/ppo_score_based_v1_20260224_113524/final_model.zip",
+      "best_model": "project/logs/ppo_score_based_v1_20260224_113524/eval/best_model.zip",
+      "config": "project/logs/ppo_score_based_v1_20260224_113524/config.yaml",
+      "last_modified": "2026-02-24T12:36:43"
+    },
+    {
+      "run_name": "ppo_score_based_v1_20260224_113339",
+      "run_path": "project/logs/ppo_score_based_v1_20260224_113339",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v1_20260224_113339/config.yaml",
+      "last_modified": "2026-02-24T11:33:58"
+    },
+    {
+      "run_name": "ppo_score_based_v1_20260224_113024",
+      "run_path": "project/logs/ppo_score_based_v1_20260224_113024",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v1_20260224_113024/config.yaml",
+      "last_modified": "2026-02-24T11:30:25"
+    },
+    {
+      "run_name": "ppo_score_based_v1_20260224_112945",
+      "run_path": "project/logs/ppo_score_based_v1_20260224_112945",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v1_20260224_112945/config.yaml",
+      "last_modified": "2026-02-24T11:29:46"
+    },
+    {
+      "run_name": "ppo_quick_test_20260224_112355",
+      "run_path": "project/logs/ppo_quick_test_20260224_112355",
+      "final_model": "project/logs/ppo_quick_test_20260224_112355/final_model.zip",
+      "best_model": "project/logs/ppo_quick_test_20260224_112355/eval/best_model.zip",
+      "config": "project/logs/ppo_quick_test_20260224_112355/config.yaml",
+      "last_modified": "2026-02-24T11:24:16"
+    },
+    {
+      "run_name": "ppo_score_based_v1_20260224_112251",
+      "run_path": "project/logs/ppo_score_based_v1_20260224_112251",
+      "final_model": null,
+      "best_model": null,
+      "config": "project/logs/ppo_score_based_v1_20260224_112251/config.yaml",
+      "last_modified": "2026-02-24T11:23:26"
+    }
+  ],
+  "robust_evaluations": [
+    {
+      "file": "project/experiments/evaluation/robust/ppo_robust/score_based/robust_eval_v4a_20260308_143224.json",
+      "report_file": "project/experiments/evaluation/robust/ppo_robust/score_based/robust_eval_v4a_20260308_143224_report.md",
+      "timestamp": "20260308_143224",
+      "eval_tag": "v4a",
+      "games_per_opponent": 1000,
+      "model_path": "project/logs/maskable_ppo_v4a_ent_lr_20260306_213530/eval/best_model",
+      "family": "score_based",
+      "results": {
+        "Random (wrapper)": {
+          "win_rate_pooled": 94.8,
+          "wilson_ci": [
+            93.24439406590116,
+            96.01271582075825
+          ]
+        },
+        "RandomAgent": {
+          "win_rate_pooled": 91.2,
+          "wilson_ci": [
+            89.2827366550245,
+            92.80192690145694
+          ]
+        },
+        "GreedyAgent": {
+          "win_rate_pooled": 75.8,
+          "wilson_ci": [
+            73.04991577735997,
+            78.35261625558229
+          ]
+        }
+      },
+      "composite_score": 87.26666666666667
+    },
+    {
+      "file": "project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_v5_event_20260309_211510.json",
+      "report_file": "project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_v5_event_20260309_211510_report.md",
+      "timestamp": "20260309_211510",
+      "eval_tag": "v5_event",
+      "games_per_opponent": 1000,
+      "model_path": "project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+      "family": "event_based",
+      "results": {
+        "Random (wrapper)": {
+          "win_rate_pooled": 94.3,
+          "wilson_ci": [
+            92.68626022720123,
+            95.57467655804457
+          ]
+        },
+        "RandomAgent": {
+          "win_rate_pooled": 88.8,
+          "wilson_ci": [
+            86.69495617556403,
+            90.60807649413208
+          ]
+        },
+        "GreedyAgent": {
+          "win_rate_pooled": 77.9,
+          "wilson_ci": [
+            75.22423161766015,
+            80.36222744121928
+          ]
+        }
+      },
+      "composite_score": 87.0
+    },
+    {
+      "file": "project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_e2_stage_b_20260317_130241.json",
+      "report_file": "project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_e2_stage_b_20260317_130241_report.md",
+      "timestamp": "20260317_130241",
+      "eval_tag": "e2_stage_b",
+      "games_per_opponent": 1000,
+      "model_path": "project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/eval/best_model",
+      "family": "event_based",
+      "results": {
+        "Random (wrapper)": {
+          "win_rate_pooled": 93.60000000000001,
+          "wilson_ci": [
+            91.90989242389269,
+            94.95640201937408
+          ]
+        },
+        "RandomAgent": {
+          "win_rate_pooled": 89.7,
+          "wilson_ci": [
+            87.66159605900107,
+            91.43454819323954
+          ]
+        },
+        "GreedyAgent": {
+          "win_rate_pooled": 73.8,
+          "wilson_ci": [
+            70.9871862427285,
+            76.4306533845593
+          ]
+        }
+      },
+      "composite_score": 85.7
+    }
+  ],
+  "mcts_benchmarks": [
+    {
+      "file": "project/experiments/evaluation/robust/mcts/canonical/mcts_benchmark_overnight_g500_20260322_051530.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/canonical/mcts_benchmark_overnight_g500_20260322_051530.md",
+      "timestamp": "2026-03-22T05:15:30",
+      "games_per_matchup": 500,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "canonical",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g20_20260321_202451.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g20_20260321_202451.md",
+      "timestamp": "2026-03-21T20:24:51",
+      "games_per_matchup": 20,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g10_20260321_200356.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g10_20260321_200356.md",
+      "timestamp": "2026-03-21T20:03:56",
+      "games_per_matchup": 10,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g5_20260321_195237.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_iter_g5_20260321_195237.md",
+      "timestamp": "2026-03-21T19:52:37",
+      "games_per_matchup": 5,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_fix_20260321_194600.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_fix_20260321_194600.md",
+      "timestamp": "2026-03-21T19:46:00",
+      "games_per_matchup": 1,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_20260321_194300.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_20260321_194300.md",
+      "timestamp": "2026-03-21T19:43:00",
+      "games_per_matchup": 1,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke2_20260321_170109.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke2_20260321_170109.md",
+      "timestamp": "2026-03-21T17:01:09",
+      "games_per_matchup": 1,
+      "iterations": [
+        10
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    },
+    {
+      "file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_20260321_165920.json",
+      "report_file": "project/experiments/evaluation/robust/mcts/archive/mcts_benchmark_smoke_20260321_165920.md",
+      "timestamp": "2026-03-21T16:59:20",
+      "games_per_matchup": 2,
+      "iterations": [
+        50
+      ],
+      "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+      "bucket": "archive",
+      "rows": 3
+    }
+  ]
+}

@@ -5,9 +5,12 @@ This script intentionally uses two evaluation paths:
 1) Arena API for MCTS vs Random/Greedy (native Agent-vs-Agent interface)
 2) Gym wrapper for PPO vs MCTS (keeps PPO action-index mapping correct)
 
+Outputs are routed into the organized MCTS tree by default:
+  project/experiments/evaluation/robust/mcts/<bucket>/
+
 Usage examples:
   python project/scripts/benchmark_mcts.py --games 20 --iterations 100
-  python project/scripts/benchmark_mcts.py --games 100 --iterations 100 300
+  python project/scripts/benchmark_mcts.py --games 100 --iterations 100 300 --bucket canonical
   python project/scripts/benchmark_mcts.py --skip-ppo
 """
 
@@ -96,7 +99,14 @@ def parse_args() -> argparse.Namespace:
         "--output-dir",
         type=str,
         default="project/experiments/evaluation/robust",
-        help="Directory for benchmark artifacts",
+        help="Base output directory. Results are routed into mcts/<bucket>/ when possible.",
+    )
+    parser.add_argument(
+        "--bucket",
+        type=str,
+        choices=["archive", "canonical"],
+        default="archive",
+        help="Use archive for smoke/debug runs and canonical for citation-worthy runs.",
     )
     parser.add_argument("--tag", type=str, default="")
     return parser.parse_args()
@@ -424,6 +434,18 @@ def load_ppo_or_maskable(model_path: Path):
     raise RuntimeError("Could not load PPO checkpoint. " + " | ".join(errors))
 
 
+def resolve_output_dir(output_arg: str, bucket: str) -> Path:
+    """Keep compatibility with the old CLI while defaulting to robust/mcts/<bucket>/."""
+    output_dir = Path(output_arg)
+    if output_dir.name in {"archive", "canonical"} and output_dir.parent.name == "mcts":
+        return output_dir
+    if output_dir.name == "mcts":
+        return output_dir / bucket
+    if output_dir.name == "robust":
+        return output_dir / "mcts" / bucket
+    return output_dir
+
+
 def make_mcts(preset: MCTSPreset, iteration_limit: int, exploration: float):
     return SingleMCTSAgent(
         iteration_limit=iteration_limit,
@@ -450,6 +472,7 @@ def save_outputs(output_dir: Path, tag: str, payload: dict) -> tuple[Path, Path]
     lines.append(f"- Games per matchup: {payload['meta']['games_per_matchup']}")
     lines.append(f"- Iterations tested: {payload['meta']['iterations']}")
     lines.append(f"- PPO model: {payload['meta'].get('ppo_model', '(skipped)')}")
+    lines.append(f"- Bucket: {payload['meta'].get('bucket', 'archive')}")
     lines.append("")
     lines.append("## Results")
     lines.append("")
@@ -562,12 +585,13 @@ def main() -> None:
             "seed": args.seed,
             "exploration": args.exploration,
             "ppo_model": str(ppo_model_path) if ppo_model_path else None,
+            "bucket": args.bucket,
             "skipped": skipped,
         },
         "results": rows,
     }
 
-    output_dir = Path(args.output_dir)
+    output_dir = resolve_output_dir(args.output_dir, args.bucket)
     json_path, md_path = save_outputs(output_dir, args.tag, payload)
 
     print("=" * 88)
@@ -587,6 +611,7 @@ def main() -> None:
             f"sec/game={row['sec_per_game']:.3f} sanity={row.get('winner_below_15_count', 0)}"
         )
     print("=" * 88)
+    print(f"Bucket: {args.bucket}")
     if skipped:
         print("Skipped presets:")
         for item in skipped:

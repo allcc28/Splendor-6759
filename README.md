@@ -23,8 +23,10 @@ Useful progress documents:
 
 - `project/docs/development/PROGRESS.md`
 - `project/docs/development/specs/phase11_event_based_experiment_plan.md`
-- `project/experiments/evaluation/robust/robust_eval_v4a_20260308_143224_report.md`
-- `project/experiments/evaluation/robust/robust_eval_v5_event_20260309_211510_report.md`
+- `project/experiments/evaluation/LATEST.md`
+- `project/experiments/reports/EXPERIMENT_INDEX.md`
+- `project/experiments/evaluation/robust/ppo_robust/score_based/robust_eval_v4a_20260308_143224_report.md`
+- `project/experiments/evaluation/robust/ppo_robust/event_based/robust_eval_v5_event_20260309_211510_report.md`
 
 ## Repository Structure
 
@@ -33,7 +35,7 @@ Useful progress documents:
 - `project/src/`: wrappers, reward shaping, callbacks, and training utilities
 - `project/configs/`: YAML experiment configs for score-based and event-based runs
 - `project/scripts/`: training, evaluation, plotting, and diagnostics
-- `project/experiments/`: reports, JSON evaluations, and generated analysis
+- `project/experiments/`: organized evaluation outputs, report indices, and generated analysis
 - `project/logs/`: training runs, checkpoints, TensorBoard logs, and console logs
 - `project/docs/development/`: progress trackers, specs, ADRs, and dev logs
 
