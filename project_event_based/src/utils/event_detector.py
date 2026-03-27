@@ -47,7 +47,7 @@ def detect_events(prev_vec: np.ndarray, action: Dict[str, Any], next_vec: np.nda
         ev[0] = 1
 
     # Event 1: Purchase development card
-    if is_buy or (player_disco_next.sum() > player_disco_prev.sum()) or (player_score_next - player_score_prev >= 1):
+    if is_buy or (player_disco_next.sum() > player_disco_prev.sum()):
         ev[1] = 1
 
     # Event 2: reserve a card
@@ -61,10 +61,10 @@ def detect_events(prev_vec: np.ndarray, action: Dict[str, Any], next_vec: np.nda
 
     # Event 5-8: Advanced strategic events (depend on basic events)
     if ev[0]: # Grab scarce resources
-        if np.any(board_next[:5] <= 2): ev[5] = 1
+        if np.any(board_next[:5] < 4): ev[5] = 1
     
     if ev[2] and opp_score_prev >= 10: ev[6] = 1 # Malicious blocking (reserve when opponent is close to win)
-    if ev[1] and player_reserved_prev > 0: ev[7] = 1 # Clear reserved card inventory (buy using reserved card)
+    if ev[1] and player_reserved_next<player_reserved_prev: ev[7] = 1 # Clear reserved card inventory (buy using reserved card)
     if score_diff >= 3: ev[8] = 1 # Explosive scoring (gained ≥3 points in one step)
 
     return ev
