@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 from pathlib import Path
+from splendor_mcts import SplendorMCTS
 
 # 1. Base interception (Numpy 2.0 & Gym)
 if not hasattr(np, 'bool8'): np.bool8 = bool
@@ -24,7 +25,7 @@ from train_maskable import EventRewardWrapper
 
 class ScoreBasedOpponent:
     def __init__(self, path):
-        self.model = PPO.load(path, device='cpu')
+        self.model = MaskablePPO.load(path, device='cpu')
         self.env_ref = None 
 
     def choose_action(self, observation, action_mask=[]):
@@ -52,7 +53,7 @@ class ScoreBasedOpponent:
             return selected_action
 
         except Exception:
-            # 🌟 Ultimate fallback: If anything breaks above, just grab a random object from current legal actions
+            # Ultimate fallback: If anything breaks above, just grab a random object from current legal actions
             try:
                 return self.env_ref.unwrapped.env.current_state_of_the_game.get_out_possible_actions()[0]
             except:
@@ -60,13 +61,14 @@ class ScoreBasedOpponent:
 
 def arena_match():
     # Use dynamically generated paths
-    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" / "v3_1m_1000000_steps.zip")
+    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" / "v3_1m_3800000_steps.zip")
     OLD_PATH = str(ROOT_PATH / "project" / "logs" / "ppo_score_based_v1_20260224_113524" / "final_model.zip")
     
     opp = ScoreBasedOpponent(OLD_PATH)
     # Create environment
     base_env = make_splendor_env(reward_mode='score_progress', opponent_agent=opp, max_turns=200)
     opp.env_ref = base_env # Establish vital link
+    
     
     # Wrap new model
     config = {
@@ -84,20 +86,21 @@ def arena_match():
             ])
         },
         'environment': {
-            'combine_event_and_score': True # 🌟 Must be set to True, otherwise it only looks at Score
+            'combine_event_and_score': True # Must be set to True, otherwise it only looks at Score
         }
     }
     env = EventRewardWrapper(base_env, config=config)
     
     my_model = MaskablePPO.load(NEW_PATH, device='cpu')
+    mcts = SplendorMCTS(model=my_model, num_simulations=50)
     
-    print("⚔️ Arena officially open: New vs Old model deathmatch...")
-    for i in range(20):
+    print(" Arena officially open: New vs Old model deathmatch...")
+    for i in range(30):
         obs, _ = env.reset()
         done = False
         while not done:
             masks = env.action_masks()
-            action, _ = my_model.predict(obs, action_masks=masks, deterministic=True)
+            action = mcts.search(env, current_obs=obs)
             obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
         print(f"Game {i+1} Finished! Winner Info: {info.get('agent_won', 'Unknown')}")

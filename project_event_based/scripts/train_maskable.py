@@ -28,7 +28,7 @@ from sb3_contrib import MaskablePPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import BaseCallback
 
-print("✅ Low-level interception activated: Fake shimmy module created to bypass Discrete(200) conversion error")
+print("Low-level interception activated: Fake shimmy module created to bypass Discrete(200) conversion error")
 
 
 
@@ -183,16 +183,20 @@ class EventRewardWrapper(gym.Wrapper):
 
 # --- 4. Curriculum Learning Control ---
 class AdvancedCurriculumCallback(BaseCallback):
-    def __init__(self, switch_step=300000, check_freq=1000, entropy_threshold=0.5, verbose=1):
+    def __init__(self, total_timesteps,switch_step=300000, check_freq=1000, entropy_threshold=0.5, verbose=1):
         super().__init__(verbose)
         self.switch_step = switch_step
         self.has_switched = False
-        
+        self.total_timesteps = total_timesteps
         # Now these two lines won't throw NameError
         self.check_freq = check_freq           
         self.entropy_threshold = entropy_threshold
 
     def _on_step(self) -> bool:
+        curr_env = self.training_env.envs[0]
+        while not hasattr(curr_env, 'combine_with_score') and hasattr(curr_env, 'env'):
+            curr_env = curr_env.env
+        # 1. Check if we should switch to combined reward
         if self.num_timesteps >= self.switch_step and not self.has_switched:
             curr_env = self.training_env.envs[0]
             # Traverse wrappers to find variable
@@ -202,7 +206,24 @@ class AdvancedCurriculumCallback(BaseCallback):
                 curr_env.combine_with_score = True
                 self.has_switched = True
                 print(f"\n [Step {self.num_timesteps}] Trigger switch: Introduce original score for elite training")
+        #
+        if hasattr(curr_env, 'event_weights'):
+            # calculate the progress (0.0 to 1.0)
+            progress = min(1.0, self.num_timesteps / self.total_timesteps)
+            
+            # dynamically adjust weights: as training progresses, we can slowly shift focus from Engine_Spike to Is_Score_Up
+            new_engine_weight = 12.0 - (10.0 * progress)  # 12.0 slowly decreases to 2.0
+            new_score_weight = 4.0 + (4.0 * progress)     # 4.0 slowly increases to 10.0
+            
+            # Modify the weights in the environment
+            curr_env.event_weights[8] = new_engine_weight
+            curr_env.event_weights[3] = new_score_weight
+
+            # Record to TensorBoard, so we can visualize the dynamic curriculum in the logs
+            self.logger.record("dynamic_weights/engine_spike", new_engine_weight)
+            self.logger.record("dynamic_weights/is_score_up", new_score_weight)
         return True
+    
 
 from stable_baselines3.common.monitor import Monitor
 
@@ -214,7 +235,7 @@ class EventStatsCallback(BaseCallback):
         super(EventStatsCallback, self).__init__(verbose)
         self.episode_rewards = []
         
-        # 💡 Core Fix: Add accumulators for episode events and steps
+        #  Core Fix: Add accumulators for episode events and steps
         self.rollout_events = np.zeros(9)
         self.rollout_steps = 0
 
@@ -295,10 +316,10 @@ def main():
         ent_coef=0.05, # Maintain high exploration to trigger card purchase events
         tensorboard_log="./logs/maskable_v3_1m/"
     )
-
+    TOTAL_STEPS = 4_000_000
     # 5. Assemble Callback list matching image requirements
     callbacks = CallbackList([
-        AdvancedCurriculumCallback(switch_step=300000), 
+        AdvancedCurriculumCallback(total_timesteps=TOTAL_STEPS, switch_step=300000), 
         EventStatsCallback(), 
         CheckpointCallback(save_freq=50000, save_path='./models/', name_prefix='v3_1m')
     ])
@@ -306,7 +327,7 @@ def main():
     print(" Start 1M step experiment: Console will display episode_reward and event_rates tables synchronously...")
     
     # log_interval=1 ensures table refresh every round
-    model.learn(total_timesteps=1000000, callback=callbacks, log_interval=1)
+    model.learn(total_timesteps=TOTAL_STEPS, callback=callbacks, log_interval=1)
 
 if __name__ == '__main__':
     main()

@@ -16,6 +16,7 @@ from typing import Tuple, Dict, Any, Optional
 
 from gym_splendor_code.envs.splendor import SplendorEnv
 from gym_splendor_code.envs.mechanics.action import Action
+import pickle
 
 # Prefer local event vectorizer when present; otherwise try to import the
 # original SplendorStateVectorizer. If neither is available create a
@@ -226,6 +227,27 @@ class SplendorGymWrapper(gym.Env):
 
     def close(self):
         pass
+
+    def get_state(self) -> bytes:
+        """
+        [MCTS]extract a snapshot of the current game state as bytes, which can be stored in MCTS nodes for fast copying and restoration during simulations.
+
+        """
+        # only serialize the essential game state object, not the entire wrapper or environment, to minimize size and maximize speed
+        return pickle.dumps(self.env.current_state_of_the_game)
+
+    def set_state(self, state_bytes: bytes):
+        """
+        [MCTS] restore the game state from a snapshot stored in MCTS nodes. This allows MCTS simulations to explore different action sequences without affecting the real game state.
+        """
+        # restore the game state object from bytes and assign it back to the environment. This should be a very fast operation compared to deep copying or resetting the environment.
+        self.env.current_state_of_the_game = pickle.loads(state_bytes)
+        
+        # after restoring the state, we must also update the cached legal actions and the observation vector to ensure consistency for the next step or action selection in MCTS
+        if hasattr(self, '_update_legal_actions'):
+            self._update_legal_actions()
+        if hasattr(self, 'last_obs_raw'):
+            self.last_obs_raw = self._get_observation()
 
 
 def make_splendor_env(reward_mode: str = 'score_progress', opponent_agent=None, **kwargs) -> SplendorGymWrapper:
