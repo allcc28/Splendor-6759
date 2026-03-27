@@ -33,7 +33,9 @@ print("Low-level interception activated: Fake shimmy module created to bypass Di
 
 
 import yaml
+import argparse
 from pathlib import Path
+from datetime import datetime
 
 
 # --- 0. Path Mounting ---
@@ -53,7 +55,6 @@ from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback,
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 # --- 2. Module Imports (paths are now mounted) ---
-from gym_splendor_code.envs.mechanics.enums import GemColor
 from vectorizer import Vectorizer 
 # Assume SplendorGymWrapper is in the same directory as your script or mounted path
 try:
@@ -78,46 +79,71 @@ class EventRewardWrapper(gym.Wrapper):
         self.combine_with_score = config['environment'].get('combine_event_and_score', False)
         self.last_event = np.zeros(9)
 
+    def _get_current_state_and_player_id(self):
+        """Get the underlying Splendor state and current learning player id."""
+        base_env = self.unwrapped
+        splendor_env = getattr(base_env, 'env', None)
+        state = getattr(splendor_env, 'current_state_of_the_game', None)
+        player_id = getattr(base_env, 'player_id', 0)
+        return state, player_id
+
     def _get_gem_gap_features(self):
         """
-        Calculate the number of missing gems for the current player to buy each of the 12 cards on the field (60 dimensions).
-        Directly tell the Agent: 'How many more gems you need to buy this card'.
+        Calculate missing gems (60 dims = 12 cards x 5 colors) for buying each board card.
+
+        Correct gold handling:
+        - Step 1: raw per-color gap = max(0, cost[c] - (gems[c] + discounts[c]))  — no gold
+        - Step 2: gold reduces the *total* gap of each card independently
+                  (gold can substitute any color, so it covers the largest shortfalls first)
+        - Step 3: remaining gap is scaled proportionally back to 5 dims
+
+        This avoids the old bug where 1 gold token would reduce ALL 12 cards' gaps
+        simultaneously. Each card's gold coverage is evaluated in isolation.
         """
-        obs = self.last_obs_raw # 135-dimensional raw vector
-        
-        # 1. Extract current player assets (gem holdings + discounts from purchased cards)
-        # In standard Splendor Vectorizer: [0:5] are gems, [5:10] are discounts
-        player_gems = obs[0:5] 
-        player_discounts = obs[5:10]
-        total_assets = player_gems + player_discounts
-        
+        from gym_splendor_code.envs.mechanics.enums import GemColor
+        COLOR_ORDER = [GemColor.WHITE, GemColor.BLUE, GemColor.GREEN, GemColor.RED, GemColor.BLACK]
+
+        state, player_id = self._get_current_state_and_player_id()
+        if state is None:
+            return np.zeros(60, dtype=np.float32)
+
+        player = state.list_of_players_hands[player_id]
+        owned_gems = player.gems_possessed.gems_dict
+        discounts  = player.discount().gems_dict
+        gold_count = owned_gems.get(GemColor.GOLD, 0)
+
+        # Effective colored assets (gems + card discounts, gold excluded)
+        assets = {c: owned_gems.get(c, 0) + discounts.get(c, 0) for c in COLOR_ORDER}
+
         gaps = []
-        # 2. Extract cost information of 12 cards on the field
-        # Index 40 onwards is usually detailed data of field cards
-        cards_offset = 40 
-        
-        for i in range(12): # Iterate over 12 slots on the field
-            card_start = cards_offset + (i * 5)
-            # Ensure no out-of-bounds extraction for 135-dimensional vector
-            if card_start + 5 <= len(obs):
-                card_cost = obs[card_start : card_start + 5]
-                # Core logic: gap = max(0, cost - existing assets)
-                # This directly reduces the difficulty of model learning "purchase conditions"
-                gap = np.maximum(0, card_cost - total_assets)
-                gaps.extend(gap.tolist())
+        for card in state.board.cards_on_board:
+            card_cost = card.price.gems_dict
+
+            # Step 1: raw per-color gap (no gold)
+            raw = [max(0.0, card_cost.get(c, 0) - assets[c]) for c in COLOR_ORDER]
+            total_raw = sum(raw)
+
+            # Step 2: gold covers up to total_raw for this card
+            gold_usable = min(gold_count, total_raw)
+
+            # Step 3: scale all color gaps proportionally by the remaining fraction
+            if total_raw > 0:
+                scale = (total_raw - gold_usable) / total_raw
+                adjusted = [r * scale for r in raw]
             else:
-                gaps.extend([0.0] * 5)
-        
-        # 3. Strictly pad to 60 dimensions to prevent ValueError caused by dimension collapse
-        if len(gaps) < 60:
-            gaps.extend([0.0] * (60 - len(gaps)))
-            
+                adjusted = raw  # card already affordable, all zeros
+
+            gaps.extend(adjusted)
+
+        while len(gaps) < 60:
+            gaps.append(0.0)
+
         return np.array(gaps[:60], dtype=np.float32)
 
     def _get_obs(self, obs_40, events_9):
         """Ensure definition receives self + 2 logical parameters"""
         # Get 60-dimensional gem gap features
-        gap_features = self._get_gem_gap_features() 
+        gap_features = self._get_gem_gap_features()
         # Concatenate: 40 + 60 + 9 = 109
         return np.concatenate([obs_40, gap_features, events_9]).astype(np.float32)
 
@@ -136,7 +162,7 @@ class EventRewardWrapper(gym.Wrapper):
         self.last_event = np.zeros(9, dtype=np.int32)
         self.last_obs_raw = obs.copy()
         
-        # 4. Concatenate your 109-dimensional features (40 base + 60 gaps + 9 events)
+        # 4. Concatenate enhanced features (40 base + 60 gaps + 9 events)
         # Ensure _get_obs logic is correct here
         full_obs = self._get_obs(obs[:40], self.last_event)
         return full_obs, info
@@ -172,7 +198,7 @@ class EventRewardWrapper(gym.Wrapper):
         # 5. Ensure last_event is added to info for console table printing
         info['last_event'] = ev.astype(np.int32)
         
-        # 6. Generate enhanced 109-dimensional vector containing 60-dimensional gem gaps
+        # 6. Generate enhanced vector
         new_obs = self._get_obs(next_vec, self.last_event)
         
         return new_obs, reward, terminated, truncated, info
@@ -276,10 +302,24 @@ class EventStatsCallback(BaseCallback):
         self.rollout_steps = 0
 
 def main():
-    import yaml
+    parser = argparse.ArgumentParser(description="Train event-based MaskablePPO agent")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to YAML config file. Defaults to project_event_based/configs/training/ppo_event_based.yaml",
+    )
+    parser.add_argument(
+        "--run-tag",
+        type=str,
+        default=None,
+        help="Optional short tag appended to run/checkpoint names, e.g. goldgap_v2",
+    )
+    args = parser.parse_args()
+
     # Path resolution: point to project_event_based/configs/
     root_path = Path(__file__).resolve().parent.parent
-    config_path = root_path / 'configs' / 'training' / 'ppo_event_based.yaml'
+    config_path = Path(args.config).expanduser().resolve() if args.config else root_path / 'configs' / 'training' / 'ppo_event_based.yaml'
     
     if not config_path.exists():
         print(f"Config file not found: {config_path}")
@@ -288,6 +328,47 @@ def main():
     with open(config_path, 'r') as f:
         # Define cfg here to ensure it's a local variable
         cfg = yaml.safe_load(f)
+
+    training_cfg = cfg.get('training', {})
+    ppo_cfg = cfg.get('ppo', {})
+    checkpoints_cfg = cfg.get('checkpoints', {})
+    experiment_cfg = cfg.get('experiment', {})
+
+    total_steps = int(training_cfg.get('total_timesteps', 4_000_000))
+    log_interval = int(training_cfg.get('log_interval', 1))
+    verbose = int(training_cfg.get('verbose', 1))
+    ent_coef = float(ppo_cfg.get('ent_coef', 0.05))
+    learning_rate = ppo_cfg.get('learning_rate', 0.0003)
+    n_steps = int(ppo_cfg.get('n_steps', 1024))
+    batch_size = int(ppo_cfg.get('batch_size', 256))
+    n_epochs = int(ppo_cfg.get('n_epochs', 10))
+    gamma = float(ppo_cfg.get('gamma', 0.99))
+    gae_lambda = float(ppo_cfg.get('gae_lambda', 0.95))
+    clip_range = ppo_cfg.get('clip_range', 0.2)
+    vf_coef = float(ppo_cfg.get('vf_coef', 0.5))
+    max_grad_norm = float(ppo_cfg.get('max_grad_norm', 0.5))
+    policy = ppo_cfg.get('policy', 'MlpPolicy')
+
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    base_prefix = checkpoints_cfg.get('name_prefix') or experiment_cfg.get('name') or 'ppo_event_based'
+    run_parts = [base_prefix]
+    if args.run_tag:
+        run_parts.append(args.run_tag)
+    run_parts.append(timestamp)
+    run_prefix = '_'.join(part for part in run_parts if part)
+
+    tensorboard_dir = root_path / training_cfg.get('tensorboard_log', 'logs/tensorboard')
+    checkpoint_dir = root_path / checkpoints_cfg.get('save_path', 'logs/checkpoints')
+    save_freq = int(training_cfg.get('save_freq', 50_000))
+
+    tensorboard_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Using config: {config_path}")
+    print(f"Run prefix: {run_prefix}")
+    print(f"TensorBoard log dir: {tensorboard_dir}")
+    print(f"Checkpoint dir: {checkpoint_dir}")
+    print(f"Total timesteps: {total_steps}")
 
     # 💡 Core Fix: Explicitly pass cfg to make_env
     def make_env(config):
@@ -310,24 +391,33 @@ def main():
 
     # 4. Initialize model
     model = MaskablePPO(
-        "MlpPolicy",
+        policy,
         venv,
-        verbose=1,
-        ent_coef=0.05, # Maintain high exploration to trigger card purchase events
-        tensorboard_log="./logs/maskable_v3_1m/"
+        verbose=verbose,
+        learning_rate=learning_rate,
+        n_steps=n_steps,
+        batch_size=batch_size,
+        n_epochs=n_epochs,
+        gamma=gamma,
+        gae_lambda=gae_lambda,
+        clip_range=clip_range,
+        ent_coef=ent_coef,
+        vf_coef=vf_coef,
+        max_grad_norm=max_grad_norm,
+        tensorboard_log=str(tensorboard_dir)
     )
-    TOTAL_STEPS = 4_000_000
+
     # 5. Assemble Callback list matching image requirements
     callbacks = CallbackList([
-        AdvancedCurriculumCallback(total_timesteps=TOTAL_STEPS, switch_step=300000), 
+        AdvancedCurriculumCallback(total_timesteps=total_steps, switch_step=300000), 
         EventStatsCallback(), 
-        CheckpointCallback(save_freq=50000, save_path='./models/', name_prefix='v3_1m')
+        CheckpointCallback(save_freq=save_freq, save_path=str(checkpoint_dir), name_prefix=run_prefix)
     ])
 
-    print(" Start 1M step experiment: Console will display episode_reward and event_rates tables synchronously...")
+    print("Start training run: Console will display episode_reward and event_rates tables synchronously...")
     
     # log_interval=1 ensures table refresh every round
-    model.learn(total_timesteps=TOTAL_STEPS, callback=callbacks, log_interval=1)
+    model.learn(total_timesteps=total_steps, callback=callbacks, log_interval=log_interval)
 
 if __name__ == '__main__':
     main()

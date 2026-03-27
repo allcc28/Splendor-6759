@@ -62,8 +62,30 @@ def detect_events(prev_vec: np.ndarray, action: Dict[str, Any], next_vec: np.nda
     # Event 5-8: Advanced strategic events (depend on basic events)
     if ev[0]: # Grab scarce resources
         if np.any(board_next[:5] < 4): ev[5] = 1
-    
-    if ev[2] and opp_score_prev >= 10: ev[6] = 1 # Malicious blocking (reserve when opponent is close to win)
+
+    # Event 6: Malicious blocking — reserve the card that opponent is closest to buying
+    # Condition: player reserved a card AND opponent's gap for that exact card is small (≤2 gems away)
+    if ev[2] and hasattr(action, 'card') and action.card is not None:
+        from gym_splendor_code.envs.mechanics.enums import GemColor
+        # prev_vec[21:27] = opp gems in enum order [GOLD,RED,GREEN,BLUE,WHITE,BLACK]
+        # prev_vec[27:33] = opp discounts in the same order
+        OPP_GEMS_BASE = 21
+        OPP_DISC_BASE = 27
+        opp_gold = prev_vec[OPP_GEMS_BASE + GemColor.GOLD.value]
+        card_cost = action.card.price.gems_dict
+        total_gap = 0
+        for c in [GemColor.RED, GemColor.GREEN, GemColor.BLUE, GemColor.WHITE, GemColor.BLACK]:
+            cost = card_cost.get(c, 0)
+            opp_has = prev_vec[OPP_GEMS_BASE + c.value] + prev_vec[OPP_DISC_BASE + c.value]
+            total_gap += max(0, cost - opp_has)
+        total_gap = max(0, total_gap - opp_gold)  # opponent's gold covers part of gap
+        if total_gap <= 2:
+            ev[6] = 1
+    elif ev[2]:
+        # Fallback when action has no card info (shouldn't happen but keeps backward compat)
+        if opp_score_prev >= 10:
+            ev[6] = 1
+
     if ev[1] and player_reserved_next<player_reserved_prev: ev[7] = 1 # Clear reserved card inventory (buy using reserved card)
     if score_diff >= 3: ev[8] = 1 # Explosive scoring (gained ≥3 points in one step)
 
