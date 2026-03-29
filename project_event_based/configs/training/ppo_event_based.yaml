@@ -4,7 +4,7 @@ environment:
   name: "SplendorEventBased"
   reward_mode: "event_based"
   max_turns: 150
-  opponent: "random"
+  opponent: "greedy"
   combine_event_and_score: true
 
 reward:

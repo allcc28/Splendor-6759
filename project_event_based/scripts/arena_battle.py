@@ -61,7 +61,7 @@ class ScoreBasedOpponent:
 
 def arena_match():
     # Use dynamically generated paths
-    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" / "v3_1m_3800000_steps.zip")
+    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" / "A_hybrid_start" / "ppo_event_based_A_hybrid_start_s44_20260328_180929_1000000_steps.zip")
     OLD_PATH = str(ROOT_PATH / "project" / "logs" / "ppo_score_based_v1_20260224_113524" / "final_model.zip")
     
     opp = ScoreBasedOpponent(OLD_PATH)

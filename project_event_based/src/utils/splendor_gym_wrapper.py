@@ -116,6 +116,9 @@ class SplendorGymWrapper(gym.Env):
         observation_obj = self.env.reset()
         self.turn_count = 0
         self.prev_score = 0
+        # Allow dynamic opponent policies to re-sample behavior per episode.
+        if self.opponent_agent is not None and hasattr(self.opponent_agent, 'on_reset'):
+            self.opponent_agent.on_reset()
         if self.player_id == 1:
             self._opponent_move()
         self._update_legal_actions()
@@ -233,15 +236,29 @@ class SplendorGymWrapper(gym.Env):
         [MCTS]extract a snapshot of the current game state as bytes, which can be stored in MCTS nodes for fast copying and restoration during simulations.
 
         """
-        # only serialize the essential game state object, not the entire wrapper or environment, to minimize size and maximize speed
-        return pickle.dumps(self.env.current_state_of_the_game)
+        # Serialize both board state and terminal flags. If terminal flags are not
+        # restored, MCTS simulations can leak stale winner/is_done into real play.
+        payload = {
+            'state': self.env.current_state_of_the_game,
+            'is_done': getattr(self.env, 'is_done', False),
+            'first_winner': getattr(self.env, 'first_winner', None),
+        }
+        return pickle.dumps(payload)
 
     def set_state(self, state_bytes: bytes):
         """
         [MCTS] restore the game state from a snapshot stored in MCTS nodes. This allows MCTS simulations to explore different action sequences without affecting the real game state.
         """
-        # restore the game state object from bytes and assign it back to the environment. This should be a very fast operation compared to deep copying or resetting the environment.
-        self.env.current_state_of_the_game = pickle.loads(state_bytes)
+        # Backward compatible restore: older snapshots may contain only the state object.
+        payload = pickle.loads(state_bytes)
+        if isinstance(payload, dict) and 'state' in payload:
+            self.env.current_state_of_the_game = payload['state']
+            self.env.is_done = payload.get('is_done', False)
+            self.env.first_winner = payload.get('first_winner', None)
+        else:
+            self.env.current_state_of_the_game = payload
+            self.env.is_done = False
+            self.env.first_winner = None
         
         # after restoring the state, we must also update the cached legal actions and the observation vector to ensure consistency for the next step or action selection in MCTS
         if hasattr(self, '_update_legal_actions'):

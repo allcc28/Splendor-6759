@@ -237,9 +237,9 @@ class AdvancedCurriculumCallback(BaseCallback):
             # calculate the progress (0.0 to 1.0)
             progress = min(1.0, self.num_timesteps / self.total_timesteps)
             
-            # dynamically adjust weights: as training progresses, we can slowly shift focus from Engine_Spike to Is_Score_Up
+            # Dynamically adjust engine-spike and keep score-up fixed as requested.
             new_engine_weight = 12.0 - (10.0 * progress)  # 12.0 slowly decreases to 2.0
-            new_score_weight = 4.0 + (4.0 * progress)     # 4.0 slowly increases to 10.0
+            new_score_weight = 8.0
             
             # Modify the weights in the environment
             curr_env.event_weights[8] = new_engine_weight
@@ -252,6 +252,8 @@ class AdvancedCurriculumCallback(BaseCallback):
     
 
 from stable_baselines3.common.monitor import Monitor
+from agents.random_agent import RandomAgent
+from agents.greedy_agent_boost import GreedyAgentBoost
 
 
 
@@ -300,6 +302,24 @@ class EventStatsCallback(BaseCallback):
         # 💡 Must clear accumulators for next rollout
         self.rollout_events = np.zeros(9)
         self.rollout_steps = 0
+
+
+class MixedOpponentAgent:
+    """Sample opponent type once per episode: random vs greedy."""
+
+    def __init__(self, greedy_prob: float = 0.5):
+        self.greedy_prob = max(0.0, min(1.0, float(greedy_prob)))
+        self.random_agent = RandomAgent(distribution='uniform_on_types')
+        self.greedy_agent = GreedyAgentBoost(mode='event')
+        self.current_agent = None
+
+    def on_reset(self):
+        self.current_agent = self.greedy_agent if np.random.rand() < self.greedy_prob else self.random_agent
+
+    def choose_action(self, observation, previous_actions):
+        if self.current_agent is None:
+            self.on_reset()
+        return self.current_agent.choose_action(observation, previous_actions)
 
 def main():
     parser = argparse.ArgumentParser(description="Train event-based MaskablePPO agent")
@@ -361,6 +381,10 @@ def main():
     checkpoint_dir = root_path / checkpoints_cfg.get('save_path', 'logs/checkpoints')
     save_freq = int(training_cfg.get('save_freq', 50_000))
 
+    env_cfg = cfg.get('environment', {})
+    opponent_mode = str(env_cfg.get('opponent', 'random')).strip().lower()
+    mixed_greedy_prob = float(env_cfg.get('mixed_greedy_prob', 0.5))
+
     tensorboard_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
@@ -369,11 +393,22 @@ def main():
     print(f"TensorBoard log dir: {tensorboard_dir}")
     print(f"Checkpoint dir: {checkpoint_dir}")
     print(f"Total timesteps: {total_steps}")
+    print(f"Opponent mode: {opponent_mode}")
 
     # 💡 Core Fix: Explicitly pass cfg to make_env
     def make_env(config):
         from utils.splendor_gym_wrapper import SplendorGymWrapper
-        env = SplendorGymWrapper()
+        if opponent_mode == 'mixed':
+            opponent_agent = MixedOpponentAgent(greedy_prob=mixed_greedy_prob)
+        elif opponent_mode == 'greedy':
+            opponent_agent = GreedyAgentBoost(mode='event')
+        elif opponent_mode == 'random':
+            opponent_agent = None
+        else:
+            print(f"Unknown opponent '{opponent_mode}', fallback to random")
+            opponent_agent = None
+
+        env = SplendorGymWrapper(opponent_agent=opponent_agent)
         
         # Adapt to Gymnasium spaces
         env.action_space = gym.spaces.Discrete(200)
@@ -383,7 +418,7 @@ def main():
         env = Monitor(env) 
         
         # Pass config to wrapper
-        env = EventRewardWrapper(env, config) 
+        env = EventRewardWrapper(env, config)
         return env
 
     # Use lambda closure to pass cfg
