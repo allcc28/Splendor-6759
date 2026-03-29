@@ -4,6 +4,17 @@
 **Project**: PPO Score-Based RL Agent for Splendor  
 **Current Phase**: Phase 11 In Progress 🔄 — Event-Based Reward Shaping; V5 (event_v1) remains the canonical event-based baseline (**77.9% vs Greedy, n=1000**, Wilson CI [75.2%, 80.4%]); E2 Stage B robust eval complete and did not beat V5; E1 remains interrupted/backlog
 
+### Repository Hygiene Update (2026-03-28)
+
+- Archived incomplete runs into `project/logs/archive_incomplete/` to separate non-canonical artifacts from active runs.
+- Moved historical root `.log` files into `project/logs/archived_logs/`; kept active monitoring logs in `project/logs/` root.
+- Archived legacy Phase 6 score-based JSON outputs to `project/experiments/evaluation/archive/legacy_phase6/ppo_score_based_eval/`.
+- Added directory guides and placeholders (`README`/`INDEX`) to clarify canonical entry points and artifact retention.
+
+Retention rule reinforced:
+- Keep `config.yaml` + `final_model.zip` and/or `eval/best_model.zip` + robust report as the canonical minimal artifact set.
+- Do not use archived legacy Phase 6 evaluation outputs for current benchmark claims.
+
 ---
 
 ## ✅ Completed Tasks (2026-02-24 to 2026-02-25)
@@ -310,7 +321,7 @@ Interpretation:
 Evidence files:
 - `project/experiments/evaluation/maskable_ppo_eval/eval_maskable_e3_stage_a_20260319_204900.json`
 - `project/experiments/reports/e3_stage_a_log.md`
-- `_e3_stage_a_training.log`
+- `project/experiments/reports/raw_logs/_e3_stage_a_training.log`
 
 #### PDCA Loop (before E4) — 2026-03-19
 

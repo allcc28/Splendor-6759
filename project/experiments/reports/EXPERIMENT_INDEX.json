@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-23T11:46:24",
+  "generated_at": "2026-03-28T20:21:06",
   "recommended": {
     "latest_training_run": {
       "run_name": "maskable_ppo_event_e5_v6_candidate_20260320_220734",
@@ -48,14 +48,6 @@
       "best_model": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/eval/best_model.zip",
       "config": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/config.yaml",
       "last_modified": "2026-03-19T12:59:21"
-    },
-    {
-      "run_name": "maskable_ppo_event_e3_lite_reward_20260319_114534",
-      "run_path": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114534",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/maskable_ppo_event_e3_lite_reward_20260319_114534/config.yaml",
-      "last_modified": "2026-03-19T11:45:35"
     },
     {
       "run_name": "maskable_ppo_event_e2_stage_b_20260316_202713",
@@ -154,22 +146,6 @@
       "last_modified": "2026-02-26T00:40:41"
     },
     {
-      "run_name": "ppo_score_based_v2_greedy_opp_20260225_205420",
-      "run_path": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205420",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205420/config.yaml",
-      "last_modified": "2026-02-25T20:54:21"
-    },
-    {
-      "run_name": "ppo_score_based_v2_greedy_opp_20260225_205341",
-      "run_path": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205341",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v2_greedy_opp_20260225_205341/config.yaml",
-      "last_modified": "2026-02-25T20:53:41"
-    },
-    {
       "run_name": "ppo_score_based_v1_20260224_113524",
       "run_path": "project/logs/ppo_score_based_v1_20260224_113524",
       "final_model": "project/logs/ppo_score_based_v1_20260224_113524/final_model.zip",
@@ -178,44 +154,12 @@
       "last_modified": "2026-02-24T12:36:43"
     },
     {
-      "run_name": "ppo_score_based_v1_20260224_113339",
-      "run_path": "project/logs/ppo_score_based_v1_20260224_113339",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v1_20260224_113339/config.yaml",
-      "last_modified": "2026-02-24T11:33:58"
-    },
-    {
-      "run_name": "ppo_score_based_v1_20260224_113024",
-      "run_path": "project/logs/ppo_score_based_v1_20260224_113024",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v1_20260224_113024/config.yaml",
-      "last_modified": "2026-02-24T11:30:25"
-    },
-    {
-      "run_name": "ppo_score_based_v1_20260224_112945",
-      "run_path": "project/logs/ppo_score_based_v1_20260224_112945",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v1_20260224_112945/config.yaml",
-      "last_modified": "2026-02-24T11:29:46"
-    },
-    {
       "run_name": "ppo_quick_test_20260224_112355",
       "run_path": "project/logs/ppo_quick_test_20260224_112355",
       "final_model": "project/logs/ppo_quick_test_20260224_112355/final_model.zip",
       "best_model": "project/logs/ppo_quick_test_20260224_112355/eval/best_model.zip",
       "config": "project/logs/ppo_quick_test_20260224_112355/config.yaml",
       "last_modified": "2026-02-24T11:24:16"
-    },
-    {
-      "run_name": "ppo_score_based_v1_20260224_112251",
-      "run_path": "project/logs/ppo_score_based_v1_20260224_112251",
-      "final_model": null,
-      "best_model": null,
-      "config": "project/logs/ppo_score_based_v1_20260224_112251/config.yaml",
-      "last_modified": "2026-02-24T11:23:26"
     }
   ],
   "robust_evaluations": [

@@ -70,7 +70,7 @@ By reducing these dominant weights and boosting `reserve_card` + `buy_reserved`:
 ### Step 1: Monitor Training
 ```bash
 # In WSL terminal
-tail -f _e3_stage_a_training.log
+tail -f project/experiments/reports/raw_logs/_e3_stage_a_training.log
 
 # Or check specific metrics
 tensorboard --logdir project/logs --host 0.0.0.0 --port 6006 &
@@ -108,10 +108,10 @@ Key scalars to watch:
 ### Log File
 ```bash
 # Live tail in WSL
-tail -f _e3_stage_a_training.log
+tail -f project/experiments/reports/raw_logs/_e3_stage_a_training.log
 
 # Count training progress (lines mentioning timestep)
-grep -o "[0-9]*/300000" _e3_stage_a_training.log | tail -1
+grep -o "[0-9]*/300000" project/experiments/reports/raw_logs/_e3_stage_a_training.log | tail -1
 ```
 
 ---
@@ -147,7 +147,7 @@ grep -o "[0-9]*/300000" _e3_stage_a_training.log | tail -1
 - `event_reward_mean`: **5.92**
 - `base_reward_mean`: **1.77**
 
-From `_e3_stage_a_training.log` at 300k:
+From `project/experiments/reports/raw_logs/_e3_stage_a_training.log` at 300k:
 - `event_2_rate` (`reserve_card`): **0**
 - `event_7_rate` (`buy_reserved`): **0**
 

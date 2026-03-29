@@ -179,7 +179,7 @@ The `GreedyAgentBoost` agent already demonstrates the value vs event comparison:
 - Should verify GPU environment and dependencies
 
 **Action Items**:
-- [ ] Run `check_env.py` to verify setup
+- [ ] Run `project/scripts/setup/check_env.py` to verify setup
 - [ ] Make "DQN vs PPO" decision (research or discuss with team)
 - [ ] Review PyTorch RL libraries (Stable-Baselines3, RLlib)
 

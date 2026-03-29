@@ -145,7 +145,7 @@ The wrapper-based evaluation also shows 0 scores. This means the PPO model itsel
 - `project/docs/development/PROGRESS.md` — Rewrote Phase 6 status to reflect invalid evaluation
 
 ### Created
-- `project/scripts/debug_evaluation.py` — Game trace debugging tool
+- `project/scripts/debug/debug_evaluation.py` — Game trace debugging tool
 - `project/scripts/evaluate_score_based_fixed.py` — Wrapper-based evaluation (WIP)
 - `project/docs/development/dev_logs/2026-02-25_session4_bug_discovery.md` — This file
 

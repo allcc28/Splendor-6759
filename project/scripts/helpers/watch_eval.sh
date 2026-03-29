@@ -1,6 +1,6 @@
 #!/bin/bash
 # watch_eval.sh — Live progress monitor for robust eval log
-# Usage: bash watch_eval.sh [logfile]
+# Usage: bash project/scripts/helpers/watch_eval.sh [logfile]
 LOG="${1:-project/logs/robust_eval_v5_event.log}"
 INTERVAL=5
 N=10

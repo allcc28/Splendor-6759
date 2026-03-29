@@ -2,7 +2,7 @@
 
 Use this file when you want the latest key results quickly.
 
-- Last refreshed: 2026-03-23T11:46:24
+- Last refreshed: 2026-03-28T20:21:06
 
 ## PPO (Robust)
 
@@ -18,4 +18,9 @@ Use this file when you want the latest key results quickly.
 ## Global Index
 
 - project/experiments/reports/EXPERIMENT_INDEX.md
+
+## Legacy Warning
+
+- Legacy Phase 6 score-based outputs are archived at project/experiments/evaluation/archive/legacy_phase6/.
+- Do not use legacy archive outputs for current benchmark conclusions.
 

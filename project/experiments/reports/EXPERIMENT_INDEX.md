@@ -1,7 +1,7 @@
 # Experiment Index
 
-- Generated: 2026-03-23T11:46:24
-- Total log runs: 25
+- Generated: 2026-03-28T20:21:06
+- Total log runs: 18
 - Robust eval files: 3
 - MCTS benchmark files: 8
 
@@ -34,12 +34,12 @@
 | maskable_ppo_event_e4_mixed_opp_20260319_212140 | 2026-03-20T01:18:46 | project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/eval/best_model.zip | project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/final_model.zip | project/logs/maskable_ppo_event_e4_mixed_opp_20260319_212140/config.yaml |
 | maskable_ppo_event_e3_lite_reward_20260319_115615 | 2026-03-19T13:06:34 | project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/eval/best_model.zip | project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/final_model.zip | project/logs/maskable_ppo_event_e3_lite_reward_20260319_115615/config.yaml |
 | maskable_ppo_event_e3_lite_reward_20260319_114834 | 2026-03-19T12:59:21 | project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/eval/best_model.zip | project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/final_model.zip | project/logs/maskable_ppo_event_e3_lite_reward_20260319_114834/config.yaml |
-| maskable_ppo_event_e3_lite_reward_20260319_114534 | 2026-03-19T11:45:35 | - | - | project/logs/maskable_ppo_event_e3_lite_reward_20260319_114534/config.yaml |
 | maskable_ppo_event_e2_stage_b_20260316_202713 | 2026-03-17T00:05:12 | project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/eval/best_model.zip | project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/final_model.zip | project/logs/maskable_ppo_event_e2_stage_b_20260316_202713/config.yaml |
 | maskable_ppo_event_e1_no_gap_20260315_203357 | 2026-03-15T21:41:22 | project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/eval/best_model.zip | project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/final_model.zip | project/logs/maskable_ppo_event_e1_no_gap_20260315_203357/config.yaml |
 | maskable_ppo_event_e2_no_last_event_20260310_222207 | 2026-03-10T23:27:30 | project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/eval/best_model.zip | project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/final_model.zip | project/logs/maskable_ppo_event_e2_no_last_event_20260310_222207/config.yaml |
 | maskable_ppo_event_v1_20260309_110155 | 2026-03-09T14:39:53 | project/logs/maskable_ppo_event_v1_20260309_110155/eval/best_model.zip | project/logs/maskable_ppo_event_v1_20260309_110155/final_model.zip | project/logs/maskable_ppo_event_v1_20260309_110155/config.yaml |
 | maskable_ppo_event_v1_20260309_110034 | 2026-03-09T11:00:34 | - | - | project/logs/maskable_ppo_event_v1_20260309_110034/config.yaml |
+| maskable_ppo_event_v1_20260309_105825 | 2026-03-09T10:58:26 | - | - | project/logs/maskable_ppo_event_v1_20260309_105825/config.yaml |
 
 ## Latest 10 MCTS Benchmarks
 

@@ -28,9 +28,11 @@ echo -e "${BLUE}Log Directory:${NC} $LOG_DIR"
 echo ""
 
 # Try to show last few lines of training log
-if [ -f "_e3_stage_a_training.log" ]; then
+RAW_LOG="project/experiments/reports/raw_logs/_e3_stage_a_training.log"
+
+if [ -f "$RAW_LOG" ]; then
     echo -e "${BLUE}Latest Training Output (last 10 lines):${NC}"
-    tail -10 "_e3_stage_a_training.log"
+    tail -10 "$RAW_LOG"
     echo ""
 fi
 

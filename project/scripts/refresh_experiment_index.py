@@ -62,8 +62,12 @@ def collect_log_runs() -> list[RunRecord]:
     if not LOGS_DIR.exists():
         return records
 
+    excluded_dirs = {"archived_logs", "archive_incomplete"}
+
     for run_dir in sorted(LOGS_DIR.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True):
         if not run_dir.is_dir():
+            continue
+        if run_dir.name in excluded_dirs:
             continue
 
         final_model = run_dir / "final_model.zip"
@@ -215,6 +219,23 @@ def preferred_path(entry: dict[str, Any] | None) -> str | None:
     return entry.get("report_file") or entry.get("file")
 
 
+def run_is_usable(run: RunRecord) -> bool:
+    """A run is usable for continuation/evaluation if it has at least one model artifact."""
+    return bool(run.final_model or run.best_model)
+
+
+def pick_latest_training_run(runs: list[RunRecord]) -> RunRecord | None:
+    """Prefer newest usable run; fall back to newest run if none are usable."""
+    if not runs:
+        return None
+
+    for run in runs:
+        if run_is_usable(run):
+            return run
+
+    return runs[0]
+
+
 def build_payload() -> dict[str, Any]:
     runs = collect_log_runs()
     robust = collect_robust_evals()
@@ -222,7 +243,7 @@ def build_payload() -> dict[str, Any]:
 
     family_best = best_by_family(robust)
     canonical_mcts = next((entry for entry in mcts if entry.get("bucket") == "canonical"), None)
-    latest_run = runs[0] if runs else None
+    latest_run = pick_latest_training_run(runs)
     best_overall = robust[0] if robust else None
 
     return {
@@ -357,6 +378,11 @@ def render_latest_markdown(payload: dict[str, Any]) -> str:
     lines.append("## Global Index")
     lines.append("")
     lines.append("- project/experiments/reports/EXPERIMENT_INDEX.md")
+    lines.append("")
+    lines.append("## Legacy Warning")
+    lines.append("")
+    lines.append("- Legacy Phase 6 score-based outputs are archived at project/experiments/evaluation/archive/legacy_phase6/.")
+    lines.append("- Do not use legacy archive outputs for current benchmark conclusions.")
     lines.append("")
     return "\n".join(lines) + "\n"
 

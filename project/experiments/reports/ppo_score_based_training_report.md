@@ -464,8 +464,8 @@ project/experiments/evaluation/ppo_score_based_eval_v3/
 ```
 
 **Training Logs**:
-- `training_new.log` (Full Training Output)
-- `evaluation_log.txt` (Evaluation Output)
+- `project/experiments/reports/raw_logs/training_new.log` (Full Training Output)
+- `project/experiments/reports/raw_logs/evaluation_log.txt` (Evaluation Output)
 
 ### B. Training Log Summary
 

@@ -34,6 +34,14 @@ project/outputs/**
 /test_*.sh
 /final_test_wsl.sh
 
+# Local setup helpers moved under project/
+project/scripts/setup/test_env_quick.py
+project/scripts/setup/*.sh
+project/docs/development/setup/WSL_QUICKSTART.md
+
+# Local raw console logs archived under reports/
+project/experiments/reports/raw_logs/**
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,9 +1,9 @@
-"""Write watch_eval.sh with correct content."""
-import pathlib
+"""Write the sibling watch_eval.sh file with the expected content."""
+from pathlib import Path
 
 content = r"""#!/bin/bash
 # watch_eval.sh — Live progress monitor for robust eval log
-# Usage: bash watch_eval.sh [logfile]
+# Usage: bash project/scripts/helpers/watch_eval.sh [logfile]
 LOG="${1:-project/logs/robust_eval_v5_event.log}"
 INTERVAL=5
 N=10
@@ -89,6 +89,6 @@ while true; do
 done
 """
 
-p = pathlib.Path('/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/watch_eval.sh')
+p = Path(__file__).with_name("watch_eval.sh")
 p.write_text(content)
 print(f"Written {len(content)} bytes to {p}")

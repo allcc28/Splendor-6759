@@ -13,8 +13,14 @@ This folder is for generated evaluation outputs only. Raw checkpoints still belo
 - `maskable_ppo_eval/`: current general PPO evaluation outputs.
 - `maskable_ppo_v3_eval/`: older V3-era evaluation outputs kept for history.
 - `behavior_metrics/`: behavior analysis JSON outputs.
-- `ppo_score_based_*`: legacy score-based evaluation folders retained as-is.
+- `ppo_score_based_*`: legacy score-based evaluation folders kept for traceability.
+- `archive/legacy_phase6/`: archived Phase 6 score-based outputs with known methodology caveats.
 - `robust/`: organized robust comparisons and MCTS benchmarks.
+
+## Legacy Safety Rule
+
+- Artifacts in `archive/legacy_phase6/` are historical and should not be used as current benchmark evidence.
+- Use `robust/ppo_robust/` reports for model selection and headline comparisons.
 
 ## Organization Rule
 

@@ -7,6 +7,8 @@ This `project/` folder is the active RL workspace. If you want to understand the
 - `project/src/`: active environment wrappers, reward shaping logic, callbacks, and PPO agent code.
 - `project/configs/training/`: versioned training configs for score-based, event-based, and curriculum runs.
 - `project/scripts/`: canonical entrypoints for training, evaluation, diagnostics, and experiment indexing.
+- `project/scripts/helpers/`: convenience scripts for ad hoc monitoring and small utilities.
+- `project/scripts/setup/`: local environment verification and setup helpers.
 - `project/tests/`: focused tests for the current RL pipeline.
 - `project/docs/development/`: specs, progress notes, ADRs, sprint notes, and dev logs.
 
@@ -24,6 +26,7 @@ This `project/` folder is the active RL workspace. If you want to understand the
 - `project/experiments/reports/`: curated summaries and generated indices.
   - `EXPERIMENT_INDEX.md` is the main lookup table.
   - `EXPERIMENT_INDEX.json` is the machine-readable companion.
+  - `raw_logs/` is the holding area for local console logs referenced by reports.
 
 ## Fast Navigation
 

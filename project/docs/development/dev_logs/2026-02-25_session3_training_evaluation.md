@@ -36,7 +36,7 @@ Completed Phase 1 of the project by finishing the full 1M timestep training (sta
   - No policy collapse or reward instability
 
 **Files Reviewed**:
-- `training_new.log` (complete training output)
+- `project/experiments/reports/raw_logs/training_new.log` (complete training output)
 - `project/logs/ppo_score_based_v1_20260224_113524/final_model.zip`
 - TensorBoard logs (100 evaluation checkpoints)
 
@@ -152,7 +152,7 @@ Avg Game Length: 142.3 ± 72.1 turns
 - GreedyAgent significantly slower due to state simulation
 
 **Results Saved**:
-- `project/experiments/evaluation/ppo_score_based_eval/evaluation_results_20260225_185703.json`
+- `project/experiments/evaluation/archive/legacy_phase6/ppo_score_based_eval/evaluation_results_20260225_185703.json`
 
 ---
 
@@ -185,7 +185,7 @@ Avg Game Length: 142.3 ± 72.1 turns
    - Loss metrics analysis
 
 4. **Evaluation Results**
-   - Detailed statistics vs each baseline
+-   - JSON data: `project/experiments/evaluation/archive/legacy_phase6/ppo_score_based_eval/evaluation_results_20260225_185703.json`
    - Win rate comparisons
    - Score distributions
    - Game length analysis

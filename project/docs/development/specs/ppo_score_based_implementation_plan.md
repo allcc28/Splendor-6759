@@ -27,7 +27,7 @@ PPO Integration → Training Script → Test Training Run
 **Test**: Run check script, confirm GPU is visible
 
 ```bash
-python check_env.py
+python project/scripts/setup/check_env.py
 python -c "import torch; print(torch.cuda.is_available())"
 ```
 

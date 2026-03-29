@@ -92,7 +92,7 @@ The fallback doesn't inflate the model's capability — it just prevents early t
 |------|--------|
 | `project/src/utils/splendor_gym_wrapper.py` | Fixed `_opponent_move()` — use `choose_action()` API |
 | `project/scripts/evaluate_score_based_v3.py` | NEW — Final evaluation with fallback mode |
-| `project/scripts/debug_zero_actions.py` | NEW — Diagnostic for 0 legal actions |
+| `project/scripts/debug/debug_zero_actions.py` | NEW — Diagnostic for 0 legal actions |
 | `project/docs/development/PROGRESS.md` | Major update with Phase 7 completion |
 | `project/docs/development/dev_logs/2026-02-25_session5_bug_fix_evaluation.md` | This file |
 
