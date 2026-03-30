@@ -4,9 +4,9 @@ from typing import Sequence, Optional
 
 DEFAULT_WEIGHTS = np.array([
     0.01,  # Is_Take_Gems
-    1.0,   # Is_Buy_Card
-    -0.01, # Is_Reserve
-    0.8,   # Is_Score_Up
+    5.0,   # Is_Buy_Card
+    -0.5,  # Is_Reserve
+    8.0,   # Is_Score_Up
     50.0,  # Is_Lethal
     0.25,  # Scarcity_Take
     0.5,   # Block_Reserve

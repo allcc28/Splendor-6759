@@ -59,9 +59,9 @@ class ScoreBasedOpponent:
             except:
                 return None 
 
-def arena_match(mcts_flag, n_games):
+def arena_match():
     # Use dynamically generated paths
-    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" / "A_hybrid_start" /"ppo_event_based_A_hybrid_start_s42_20260328_155415_1000000_steps")
+    NEW_PATH = str(ROOT_PATH / "project_event_based" / "notebooks" / "models" /  "A_hybrid_start" /"ppo_event_based_A_hybrid_start_s42_20260328_155415_1000000_steps")
     OLD_PATH = str(ROOT_PATH / "project" / "logs" / "ppo_score_based_v1_20260224_113524" / "final_model.zip")
     
     opp = ScoreBasedOpponent(OLD_PATH)
@@ -92,38 +92,18 @@ def arena_match(mcts_flag, n_games):
     env = EventRewardWrapper(base_env, config=config)
     
     my_model = MaskablePPO.load(NEW_PATH, device='cpu')
-    if mcts_flag:
-        mcts = SplendorMCTS(model=my_model, num_simulations=100)
+    mcts = SplendorMCTS(model=my_model, num_simulations=50)
     
     print(" Arena officially open: New vs Old model deathmatch...")
-    total_wins = 0
-    total = n_games
-    for i in range(n_games):
+    for i in range(30):
         obs, _ = env.reset()
         done = False
         while not done:
-            raw_masks = env.action_masks()
-            if mcts_flag == False:
-                masks = np.array(raw_masks, dtype=bool).flatten()
-                
-                if not np.any(masks):
-                    action = 80 
-                else:
-                    try:
-                        action, _ = my_model.predict(obs, action_masks=masks, deterministic=True)
-                        action = int(action)
-                    except ValueError as e:
-                        legal_indices = np.where(masks)[0]
-                        import random
-                        action = int(random.choice(legal_indices))
-            else:
-                action = mcts.search(env, current_obs=obs)
+            masks = env.action_masks()
+            action = mcts.search(env, current_obs=obs)
             obs, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
         print(f"Game {i+1} Finished! Winner Info: {info.get('agent_won', 'Unknown')}")
-        if info.get('agent_won', 'Unknown'):
-            total_wins += 1
-    print(f"Win Rate: {total_wins/total:.2%}")
 
 if __name__ == "__main__":
-    arena_match(mcts_flag = 1, n_games=20)
+    arena_match()

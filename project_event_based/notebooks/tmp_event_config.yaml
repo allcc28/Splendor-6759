@@ -9,7 +9,7 @@ environment:
   combine_event_and_score: false
   max_turns: 150
   name: SplendorEventBased
-  opponent: random
+  opponent: greedy
   reward_mode: event_based
 evaluation:
   callback_on_eval: false
@@ -46,9 +46,9 @@ ppo:
 reward:
   event_weights:
   - 0.01
-  - 10.0
-  - -0.1
   - 5.0
+  - -0.5
+  - 8.0
   - 50.0
   - 0.2
   - 1.0
@@ -61,6 +61,6 @@ training:
   eval_freq: 10000
   log_interval: 10
   save_freq: 50000
-  tensorboard_log: logs/tensorboard
-  total_timesteps: 400000
+  tensorboard_log: logs/tensorboards
+  total_timesteps: 2000000
   verbose: 1

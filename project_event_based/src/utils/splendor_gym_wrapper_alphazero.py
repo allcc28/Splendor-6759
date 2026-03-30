@@ -1,5 +1,5 @@
 """
-Gym-compatible wrapper for Splendor environment (event-based isolated copy).
+Gym-compatible wrapper for Splendor Alphazero battle environment (event-based isolated copy).
 
 This file is a local copy of the project's `splendor_gym_wrapper.py` adapted
 to prefer the event-based state vectorizer when available, so
@@ -116,6 +116,9 @@ class SplendorGymWrapper(gym.Env):
         observation_obj = self.env.reset()
         self.turn_count = 0
         self.prev_score = 0
+        # Allow dynamic opponent policies to re-sample behavior per episode.
+        if self.opponent_agent is not None and hasattr(self.opponent_agent, 'on_reset'):
+            self.opponent_agent.on_reset()
         if self.player_id == 1:
             self._opponent_move()
         self._update_legal_actions()
@@ -129,6 +132,26 @@ class SplendorGymWrapper(gym.Env):
         return obs, info
 
     def step(self, action_idx: int):
+        if len(self.cached_legal_actions) == 0:
+            obs = self._get_observation()
+            reward = 0.0  # 🚨 绝对不扣分！
+            terminated = True
+            truncated = False
+            info = {
+                'turn': self.turn_count,
+                'error': 'environment_deadlock',
+                'legal_actions_count': 0,
+                'agent_won': False,
+                'agent_lost': False,  # if the environment is deadlocked, we consider it a no-contest draw, so neither agent wins or loses
+                'score_diff': 0,
+                'player_score': self.prev_score,
+                'opponent_score': getattr(self, 'prev_score', 0) # avoid KeyError if prev_score is not set for some reason
+            }
+            return obs, reward, terminated, truncated, info
+
+        # ==========================================
+        # ⚔️ 2. 真实非法动作惩罚：环境没坏，但智能体瞎走，狠狠扣分！
+        # ==========================================
         if action_idx >= len(self.cached_legal_actions):
             obs = self._get_observation()
             reward = -1.0
@@ -137,12 +160,18 @@ class SplendorGymWrapper(gym.Env):
             info = {
                 'turn': self.turn_count,
                 'error': 'invalid_action',
-                'legal_actions_count': len(self.cached_legal_actions)
+                'legal_actions_count': len(self.cached_legal_actions),
+                'agent_won': False,
+                'agent_lost': True,
+                'score_diff': -1,
+                'player_score': self.prev_score,
+                'opponent_score': getattr(self, 'prev_score', 0)
             }
             return obs, reward, terminated, truncated, info
 
         action = self.cached_legal_actions[action_idx]
         observation_obj, _, done, info_dict = self.env.step('deterministic', action)
+        self._resolve_mandatory_actions()
         current_score = self.env.current_state_of_the_game.list_of_players_hands[self.player_id].number_of_my_points()
         score_diff = current_score - self.prev_score
         agent_won = done and info_dict.get('winner_id') == self.player_id
@@ -153,10 +182,25 @@ class SplendorGymWrapper(gym.Env):
         terminated = done or agent_lost
         if not terminated and not truncated:
             self._opponent_move()
-            if self.env.is_done:
+            
+            if getattr(self.env, 'is_done', False) or self.env.is_done:
                 terminated = True
-                agent_lost = True
-                reward = -1.0
+                
+                final_my_score = self.env.current_state_of_the_game.list_of_players_hands[self.player_id].number_of_my_points()
+                final_opp_score = self.env.current_state_of_the_game.list_of_players_hands[self.opponent_id].number_of_my_points()
+                
+                if final_my_score > final_opp_score:
+                    agent_won = True
+                    agent_lost = False
+                    reward = 1.0   
+                elif final_opp_score > final_my_score:
+                    agent_won = False
+                    agent_lost = True
+                    reward = -1.0  
+                else:
+                    agent_won = False
+                    agent_lost = False
+                    reward = 0.0
         self.prev_score = self.env.current_state_of_the_game.list_of_players_hands[self.player_id].number_of_my_points()
         self._update_legal_actions()
         obs = self._get_observation()
@@ -196,6 +240,42 @@ class SplendorGymWrapper(gym.Env):
             action = self.opponent_agent.choose_action(observation, [])
             if action is not None:
                 self.env.step('deterministic', action)
+        action = self.opponent_agent.choose_action(observation, [])
+        
+        if action is not None:
+            # no matter what, we must try to execute the opponent's action to advance the game, even if it's illegal or causes an error, because we want to avoid getting stuck in the environment. If the opponent agent returns an illegal action or triggers an error, we will catch it and just skip the opponent's move for this turn, rather than leaving the environment stuck with no legal actions for both agents.
+            step_result = self.env.step('deterministic', action)
+            self._resolve_mandatory_actions()
+        else:
+            print("   -> checker: Opponent agent returned None action, skipping opponent move this turn.")
+
+    def _resolve_mandatory_actions(self):
+        """
+        automatically resolve mandatory return actions to prevent environment deadlock. This is a safety net to ensure that if the opponent agent ever triggers a state where the only legal actions are some form of 'Return' or 'Discard' or 'Drop', we will automatically execute one of those actions to get out of the deadlock, rather than leaving the environment stuck with no legal actions for both agents.
+        if the opponent agent is well-trained, it should learn to avoid triggering such states in the first place, but we put this here just in case to prevent the environment from getting stuck due to unforeseen edge cases or bugs in the opponent's policy.
+        """
+        # avoid infinite loop by setting a reasonable upper limit on iterations
+        while not getattr(self.env, 'is_done', True):
+            legal_actions = self.env.action_space.list_of_actions
+            if not legal_actions:
+                break
+                
+            # check if all legal actions are some form of 'Return' or 'Discard' or 'Drop', which indicates a mandatory return state
+            is_mandatory_return = all(
+                'Return' in act.__class__.__name__ or 
+                'Discard' in act.__class__.__name__ or 
+                'Drop' in act.__class__.__name__ 
+                for act in legal_actions
+            )
+            
+            if is_mandatory_return:
+                # randomly select one of the mandatory return actions to execute, just to get out of the deadlock
+                # this is a last-resort safety net, ideally the opponent agent should never trigger this by learning to avoid illegal states, but we put it here just in case to prevent the environment from getting stuck
+                auto_act = legal_actions[0] 
+                self.env.step('deterministic', auto_act)
+            else:
+                # if there are any non-return actions, we are no longer in a mandatory return state, so we can stop the loop
+                break
 
     def _compute_reward(self, score_diff: int, won: bool, lost: bool) -> float:
         if self.reward_mode == 'score_naive':
@@ -233,15 +313,29 @@ class SplendorGymWrapper(gym.Env):
         [MCTS]extract a snapshot of the current game state as bytes, which can be stored in MCTS nodes for fast copying and restoration during simulations.
 
         """
-        # only serialize the essential game state object, not the entire wrapper or environment, to minimize size and maximize speed
-        return pickle.dumps(self.env.current_state_of_the_game)
+        # Serialize both board state and terminal flags. If terminal flags are not
+        # restored, MCTS simulations can leak stale winner/is_done into real play.
+        payload = {
+            'state': self.env.current_state_of_the_game,
+            'is_done': getattr(self.env, 'is_done', False),
+            'first_winner': getattr(self.env, 'first_winner', None),
+        }
+        return pickle.dumps(payload)
 
     def set_state(self, state_bytes: bytes):
         """
         [MCTS] restore the game state from a snapshot stored in MCTS nodes. This allows MCTS simulations to explore different action sequences without affecting the real game state.
         """
-        # restore the game state object from bytes and assign it back to the environment. This should be a very fast operation compared to deep copying or resetting the environment.
-        self.env.current_state_of_the_game = pickle.loads(state_bytes)
+        # Backward compatible restore: older snapshots may contain only the state object.
+        payload = pickle.loads(state_bytes)
+        if isinstance(payload, dict) and 'state' in payload:
+            self.env.current_state_of_the_game = payload['state']
+            self.env.is_done = payload.get('is_done', False)
+            self.env.first_winner = payload.get('first_winner', None)
+        else:
+            self.env.current_state_of_the_game = payload
+            self.env.is_done = False
+            self.env.first_winner = None
         
         # after restoring the state, we must also update the cached legal actions and the observation vector to ensure consistency for the next step or action selection in MCTS
         if hasattr(self, '_update_legal_actions'):

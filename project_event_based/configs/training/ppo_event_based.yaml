@@ -4,7 +4,7 @@ environment:
   name: "SplendorEventBased"
   reward_mode: "event_based"
   max_turns: 150
-  opponent: "random"
+  opponent: "greedy"
   combine_event_and_score: true
 
 reward:
@@ -12,7 +12,7 @@ reward:
   # Revised weights to encourage learning: boost card purchases and scoring
   # [Is_Take_Gems, Is_Buy_Card, Is_Reserve, Is_Score_Up, Is_Lethal,
   #  Scarcity_Take, Block_Reserve, Buy_Reserved, Engine_Spike]
-  event_weights: [0.01, 10.0, -0.1, 5.0, 50.0, 0.2, 1.0, 2.0, 5.0]
+  event_weights: [0.01, 5.0, -0.5, 8.0, 50.0, 0.2, 1.0, 2.0, 5.0]
 
 ppo:
   learning_rate: 0.0003
