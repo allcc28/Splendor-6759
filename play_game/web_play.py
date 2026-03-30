@@ -24,12 +24,12 @@ os.environ.setdefault('LANG', 'en_US.UTF-8')
 os.environ.setdefault('LC_ALL', 'en_US.UTF-8')
 # Add project root to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
-project_dir = os.path.dirname(script_dir)
-project_root = os.path.dirname(project_dir)
+project_root = os.path.dirname(script_dir)  # play_game/ sits directly under repo root
 modules_dir = os.path.join(project_root, "modules")
 sys.path.insert(0, modules_dir)
-sys.path.insert(0, project_dir)
 sys.path.insert(0, project_root)
+sys.path.insert(0, os.path.join(project_root, "project"))
+sys.path.insert(0, os.path.join(project_root, "project_event_based"))
 sys.path.insert(0, os.path.join(project_root, "project_event_based", "src"))
 sys.path.insert(0, os.path.join(project_root, "project_event_based", "src", "utils"))
 
@@ -509,7 +509,7 @@ def _supports_event_inference_runtime(python_cmd: str, model_path: str) -> bool:
     if not model_path or not os.path.isfile(model_path):
         return False
 
-    script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
+    script = os.path.join(script_dir, 'web_score_inference.py')
     if not os.path.isfile(script):
         return False
 
@@ -698,7 +698,7 @@ class ScoreBasedPPOOpponent:
         self.model_kind = model_info['model_kind']
         self.model_source = model_info['model_source']
         self.vectorizer = SplendorStateVectorizer()
-        self.inference_script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
+        self.inference_script = os.path.join(script_dir, 'web_score_inference.py')
         self.python_cmd = _find_value_inference_python()
         self.strict_inference = True
         print(f'ScoreBasedPPOOpponent: model={self.model_path} python={self.python_cmd}')
@@ -770,7 +770,7 @@ class EventBasedPPOOpponent:
         model_info = _resolve_event_model_info()
         self.model_path = model_info['model_path']
         self.model_kind = model_info['model_kind']
-        self.inference_script = os.path.join(project_root, 'project', 'scripts', 'web_score_inference.py')
+        self.inference_script = os.path.join(script_dir, 'web_score_inference.py')
         self.python_cmd = _find_event_inference_python(self.model_path)
         self.infer_timeout_sec = float(os.environ.get('EVENT_INFERENCE_TIMEOUT_SEC', '12'))
         self.first_infer_timeout_sec = float(os.environ.get('EVENT_FIRST_INFERENCE_TIMEOUT_SEC', '45'))
@@ -1043,7 +1043,7 @@ def _persist_game_result_if_needed():
         'final_card_counts': result['final_card_counts'],
     }
 
-    history_file = os.path.join(project_dir, 'outputs', 'web_game_history.jsonl')
+    history_file = os.path.join(script_dir, 'outputs', 'web_game_history.jsonl')
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
     with open(history_file, 'a', encoding='utf-8') as f:
         f.write(json.dumps(history_record, ensure_ascii=True) + '\n')
