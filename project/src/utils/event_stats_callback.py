@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
-from reward.event_based_reward import EVENT_NAMES
+from ..reward.event_based_reward import EVENT_NAMES
 
 
 class EventStatsCallback(BaseCallback):

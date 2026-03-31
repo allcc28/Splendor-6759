@@ -1,0 +1,11 @@
+cwd /Users/xinyan/cours/IFT6759/Splendor/splendor-agent/Splendor-6759
+reset info {'turn': 0, 'legal_actions_count': 15, 'player_score': 0, 'opponent_score': 0}
+legal count 15
+Traceback (most recent call last):
+  File "/Users/xinyan/cours/IFT6759/Splendor/splendor-agent/Splendor-6759/project_event_based/scripts/debug_event_sample.py", line 78, in <module>
+    main()
+    ~~~~^^
+  File "/Users/xinyan/cours/IFT6759/Splendor/splendor-agent/Splendor-6759/project_event_based/scripts/debug_event_sample.py", line 44, in main
+    prev_vec = vectorize_state_event({'board': {'gems': list(prev_state.board.gems_on_board)},
+                                                        ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'GemsCollection' object is not iterable
