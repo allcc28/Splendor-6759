@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "timestamp": "2026-03-28T22:38:08",
+    "games_per_matchup": 100,
+    "seed": 42,
+    "max_turns": 200,
+    "alpha_checkpoint": "project/logs/alphazero_stageA_wsl_20260328_211928/final_model.pt",
+    "alpha_config_source": "project/logs/alphazero_stageA_wsl_20260328_211928/config.yaml",
+    "alpha_device": "cuda",
+    "ppo_model": "project/logs/maskable_ppo_event_e5_v6_candidate_20260320_220734/final_model.zip",
+    "ppo_model_type": "MaskablePPO",
+    "bucket": "canonical",
+    "tag": "stageA_restart_20260328"
+  },
+  "results": [
+    {
+      "path": "local-duel",
+      "games": 100,
+      "wins": 59,
+      "losses": 41,
+      "draws": 0,
+      "win_rate": 59.0,
+      "win_rate_ci95": [
+        49.201430053410775,
+        68.13268697886348
+      ],
+      "agent_avg_points": 9.94,
+      "opponent_avg_points": 9.95,
+      "wall_time_sec": 1082.7600026130676,
+      "sec_per_game": 10.827600026130677,
+      "matchup": "AlphaZeroMCTS vs random_uniform_on_types"
+    },
+    {
+      "path": "local-duel",
+      "games": 100,
+      "wins": 24,
+      "losses": 76,
+      "draws": 0,
+      "win_rate": 24.0,
+      "win_rate_ci95": [
+        16.691325556948772,
+        33.232336349814474
+      ],
+      "agent_avg_points": 2.72,
+      "opponent_avg_points": 11.15,
+      "wall_time_sec": 1097.6238489151,
+      "sec_per_game": 10.976238489151001,
+      "matchup": "AlphaZeroMCTS vs greedy_value"
+    },
+    {
+      "path": "gym-wrapper",
+      "games": 100,
+      "wins": 0,
+      "losses": 92,
+      "draws": 8,
+      "win_rate": 0.0,
+      "win_rate_ci95": [
+        3.469446951953614e-16,
+        3.699349820698568
+      ],
+      "agent_avg_points": 1.02,
+      "opponent_avg_points": 15.04,
+      "wall_time_sec": 978.2573640346527,
+      "sec_per_game": 9.782573640346527,
+      "note": "Alpha win/loss is derived by inverting PPO perspective from wrapper eval.",
+      "matchup": "AlphaZeroMCTS vs PPO",
+      "ppo_model_type": "MaskablePPO"
+    }
+  ]
+}

@@ -1,8 +1,0 @@
-{
-  "experiment": "ppo_event_based_v1_event_based",
-  "timestamp": "20260307_220040",
-  "total_timesteps": 200000,
-  "model_path": "project_event_based/logs/ppo_event_based_v1_event_based_20260307_220040/final_model",
-  "checkpoint_path": "project_event_based/logs/ppo_event_based_v1_event_based_20260307_220040/logs/checkpoints",
-  "tensorboard_log": null
-}

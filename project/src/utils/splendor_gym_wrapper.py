@@ -9,6 +9,7 @@ Version: 1.0
 """
 
 import sys
+import pickle
 sys.path.insert(0, "modules")
 
 import numpy as np
@@ -330,10 +331,29 @@ class SplendorGymWrapper(gym.Env):
         else:
             raise ValueError(f"Unknown reward mode: {self.reward_mode}")
     
+    def get_state(self) -> bytes:
+        """
+        [MCTS] Extract a snapshot of the current game state as bytes.
+
+        Used by MCTS nodes to save/restore game state during simulations
+        without affecting the real game state.
+        """
+        return pickle.dumps(self.env.current_state_of_the_game)
+
+    def set_state(self, state_bytes: bytes):
+        """
+        [MCTS] Restore the game state from a snapshot.
+
+        After restoring, legal actions and observations are refreshed
+        to ensure consistency for the next MCTS step.
+        """
+        self.env.current_state_of_the_game = pickle.loads(state_bytes)
+        self._update_legal_actions()
+
     def render(self):
         """Render the current state (not implemented)."""
         pass
-    
+
     def close(self):
         """Clean up resources."""
         pass

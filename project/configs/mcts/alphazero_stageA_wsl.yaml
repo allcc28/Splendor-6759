@@ -1,0 +1,31 @@
+experiment:
+  name: "alphazero_stageA_wsl"
+  tags:
+    - "alphazero"
+    - "mcts"
+    - "self_play"
+    - "stage_a"
+
+network:
+  policy_size: 2048
+  trunk_channels: 128
+  num_res_blocks: 3
+
+mcts:
+  num_simulations: 25
+  c_puct: 1.5
+  dirichlet_alpha: 0.3
+  dirichlet_epsilon: 0.25
+  max_turns: 120
+  temperature_cutoff: 20
+
+training:
+  seed: 42
+  device: "cuda"
+  iterations: 20
+  episodes_per_iteration: 2
+  batch_size: 64
+  train_epochs: 2
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  checkpoint_every: 2

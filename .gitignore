@@ -15,7 +15,9 @@ training_new.log
 evaluation_log.txt
 nohup.out
 
-# Project logs/artifacts (ignore logs but expose final models)
+# Project logs/artifacts (ignore bulk logs, expose only final/best models)
+# Covers all categorized subdirs: ppo_score_based/, ppo_event_based/,
+# ppo_event_based_teammates/, alphazero/, archive_incomplete/, archived_logs/
 project/logs/**
 !project/logs/**/
 !project/logs/.gitkeep
@@ -24,6 +26,7 @@ project/logs/**
 !project/logs/**/model.zip
 !project/logs/**/interrupted_model.zip
 !project/logs/**/model_after_*.zip
+!project/logs/**/*.pt
 
 # Optional local outputs
 project/outputs/**
