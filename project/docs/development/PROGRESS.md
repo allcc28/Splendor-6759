@@ -15,6 +15,201 @@ Retention rule reinforced:
 - Keep `config.yaml` + `final_model.zip` and/or `eval/best_model.zip` + robust report as the canonical minimal artifact set.
 - Do not use archived legacy Phase 6 evaluation outputs for current benchmark claims.
 
+### AlphaZero Kickoff (2026-03-28)
+
+- Started Phase 12 implementation with a runnable AlphaZero-style skeleton (self-play + PUCT + policy/value network).
+- Added board-tensor encoder: `project/src/nn/tensor_encoder.py` (shape `(50, 3, 4)`).
+- Added dual-head network: `project/src/nn/policy_value_net.py`.
+- Added PUCT search core: `project/src/mcts/alphazero_mcts.py`.
+- Added trainer orchestration: `project/src/training/alphazero_trainer.py`.
+- Added entry script + baseline config:
+  - `project/scripts/train_alphazero_mcts.py`
+  - `project/configs/mcts/alphazero_v1_baseline.yaml`
+- Added smoke tests:
+  - `project/tests/test_tensor_encoder.py`
+  - `project/tests/test_alphazero_mcts_smoke.py`
+- Validation: `pytest -q project/tests/test_tensor_encoder.py project/tests/test_alphazero_mcts_smoke.py` → **4 passed**.
+
+### AlphaZero PDCA Cycle #2 (2026-03-28)
+
+**Plan**
+- Address MVP risk: policy-head targets previously depended on per-state legal-action order (`[:legal_count]` slicing), causing unstable action semantics across states.
+
+**Do**
+- Added deterministic action indexer: `project/src/mcts/action_indexer.py`.
+- Integrated stable action indices into policy evaluation and priors extraction in `project/src/mcts/alphazero_mcts.py`.
+- Updated training target generation in `project/src/training/alphazero_trainer.py`:
+  - scatter visit-probabilities into fixed policy indices,
+  - renormalize target vector,
+  - keep collision-tolerant accumulation behavior.
+- Increased baseline policy head size from 200 to 256 in `project/configs/mcts/alphazero_v1_baseline.yaml` to reduce hash collision pressure.
+- Added tests: `project/tests/test_action_indexer.py`.
+
+**Check**
+- Compile check passed:
+  - `python -m py_compile project/src/mcts/action_indexer.py project/src/mcts/alphazero_mcts.py project/src/training/alphazero_trainer.py project/scripts/train_alphazero_mcts.py`
+- Focused tests passed:
+  - `pytest -q project/tests/test_action_indexer.py project/tests/test_tensor_encoder.py project/tests/test_alphazero_mcts_smoke.py`
+  - Result: **6 passed**.
+
+**Act (Next Step)**
+- Implement checkpoint resume and robust AlphaZero evaluation script (`evaluate_alphazero_mcts.py`) with fixed protocol:
+  - alternating first player,
+  - vs RandomAgent / GreedyAgentBoost / PPO baseline,
+  - JSON + Markdown report outputs compatible with experiment index workflow.
+
+Status update (same day):
+- ✅ Checkpoint resume implemented in:
+  - `project/src/training/alphazero_trainer.py` (`load_checkpoint`)
+  - `project/scripts/train_alphazero_mcts.py` (`--resume`, `--iterations` override)
+- ✅ Validation after resume integration:
+  - `python -m py_compile project/src/training/alphazero_trainer.py project/scripts/train_alphazero_mcts.py`
+  - `pytest -q project/tests/test_action_indexer.py project/tests/test_alphazero_mcts_smoke.py`
+  - Result: **4 passed**.
+- 🔄 Remaining next step: robust evaluation script implementation.
+
+### AlphaZero PDCA Cycle #3 (2026-03-28)
+
+**Plan**
+- Implement the remaining next step from Cycle #2: robust AlphaZero evaluator with reproducible protocol and report artifacts.
+
+**Do**
+- Added robust evaluator script:
+  - `project/scripts/evaluate_alphazero_mcts.py`
+  - Supports: `--checkpoint`, `--games`, `--simulations`, `--skip-ppo`, `--bucket`, `--tag`
+  - Matchups:
+    - AlphaZero vs RandomAgent (`local-duel`)
+    - AlphaZero vs GreedyAgentBoost (`local-duel`)
+    - AlphaZero vs PPO/MaskablePPO (`gym-wrapper`, optional)
+  - Outputs JSON + Markdown into `project/experiments/evaluation/robust/mcts/<bucket>/`
+- Added helper utility for fast pipeline validation:
+  - `project/scripts/helpers/generate_alphazero_smoke_checkpoint.py`
+- Added robustness fix in evaluator adapter:
+  - If root state has no legal actions, return `None` instead of crashing.
+
+**Check**
+- Compile checks passed:
+  - `python -m py_compile project/scripts/evaluate_alphazero_mcts.py`
+  - `python -m py_compile project/scripts/helpers/generate_alphazero_smoke_checkpoint.py`
+- End-to-end smoke run passed:
+  - `python project/scripts/helpers/generate_alphazero_smoke_checkpoint.py`
+  - `python project/scripts/evaluate_alphazero_mcts.py --checkpoint project/logs/alphazero_smoke_init/final_model.pt --games 2 --simulations 2 --skip-ppo --tag smoke_pdca2`
+  - Artifacts:
+    - `project/experiments/evaluation/robust/mcts/archive/alphazero_eval_smoke_pdca2_20260328_204741.json`
+    - `project/experiments/evaluation/robust/mcts/archive/alphazero_eval_smoke_pdca2_20260328_204741.md`
+
+**Act (Next Step)**
+- Add PPO matchup into the same robust run on a non-smoke sample (e.g., n=100), then integrate this new report family into experiment indexing summary.
+
+### AlphaZero PDCA Cycle #4 (2026-03-28)
+
+**Plan**
+- Start actual AlphaZero Stage-A training in WSL after hardening run stability.
+
+**Do**
+- Added Stage-A WSL config: `project/configs/mcts/alphazero_stageA_wsl.yaml`
+  - `num_simulations=25`, `episodes_per_iteration=2`, `iterations=20`, `device=cuda`
+- Added device fallback safety in trainer (`cuda` unavailable -> `cpu`):
+  - `project/src/training/alphazero_trainer.py`
+- Fixed training crash on occasional no-legal-action roots by terminating that self-play episode gracefully.
+
+**Check**
+- WSL runtime check:
+  - Python `3.10.19`
+  - Torch `2.5.1+cu121`
+  - CUDA available: `True` (device count: `1`)
+- Smoke train (2 iterations) passed after fix:
+  - `[iter 001] samples=142 ...`
+  - `[iter 002] samples=204 ...`
+  - artifacts in `project/logs/alphazero_stageA_wsl_20260328_210050/`
+
+**Act**
+- Launched long Stage-A training in WSL, resumed from smoke checkpoint:
+  - `python project/scripts/train_alphazero_mcts.py --config project/configs/mcts/alphazero_stageA_wsl.yaml --resume project/logs/alphazero_stageA_wsl_20260328_210050/alphazero_iter_0002.pt --iterations 20`
+- Current status at logging time: process running (verified via `ps -ef`).
+
+### AlphaZero PDCA Cycle #5 (2026-03-28, review-driven hardening)
+
+**Plan**
+- Address four reported issues from code review with priority on representation correctness:
+  1) action-head collisions,
+  2) reserved-card identity aliasing,
+  3) unnecessary torch hard dependency in pure-MCTS smoke path,
+  4) smoke checkpoint resume ambiguity.
+
+**Do**
+- Replaced hash-mod collision mapping with collision-free action vocabulary indexing in `project/src/mcts/action_indexer.py`:
+  - stable structured action keys (including buy gold-usage fields),
+  - one unique index per seen action key,
+  - explicit overflow error when `policy_size` exhausted,
+  - checkpointable indexer state (`state_dict`/`load_state_dict`).
+- Updated MCTS/trainer integration:
+  - `project/src/mcts/alphazero_mcts.py`
+  - `project/src/training/alphazero_trainer.py`
+  - checkpoint now stores/loads `action_indexer_state`.
+- Added reserved-card identity encoding to tensor encoder:
+  - `project/src/nn/tensor_encoder.py`
+  - channels expanded `50 -> 80` with dedicated reserved-slot planes (presence/row/discount/vp/id for 3 slots × 2 players).
+- Removed torch top-level hard import from MCTS module:
+  - `project/src/mcts/alphazero_mcts.py` now lazily imports torch only in `TorchPolicyValueFunction.__call__`.
+- Clarified smoke checkpoint semantics:
+  - `project/scripts/helpers/generate_alphazero_smoke_checkpoint.py` writes `optimizer_state_dict: None`, `smoke_checkpoint: True`.
+  - trainer `load_checkpoint` tolerates missing optimizer/indexer state.
+- Increased policy head capacity to reduce vocabulary exhaustion risk:
+  - `project/configs/mcts/alphazero_v1_baseline.yaml`: `policy_size=2048`
+  - `project/configs/mcts/alphazero_stageA_wsl.yaml`: `policy_size=2048`
+
+**Check**
+- Focused regression suite:
+  - `pytest -q project/tests/test_action_indexer.py project/tests/test_tensor_encoder.py project/tests/test_alphazero_mcts_smoke.py project/tests/test_checkpoint_resume_compat.py`
+  - Result: **9 passed**.
+- New/updated tests cover:
+  - no collisions inside legal-action sets,
+  - reserved-card identity changes tensor output,
+  - MCTS smoke path imports/run without eager torch dependency,
+  - checkpoint load compatibility when optimizer state is absent.
+
+**Act**
+- Next run should use the updated `policy_size=2048` configs for consistency with collision-free indexing.
+- For any currently running Stage-A process started with old config/code, plan a clean restart before collecting authoritative metrics.
+
+### AlphaZero PDCA Cycle #6 (2026-03-28, post-StageA evaluation and Stage-B kickoff)
+
+**Plan**
+- Validate the clean-restarted Stage-A model with canonical robust protocol.
+- If Stage-A is still weak versus Greedy/PPO, escalate training budget to a Stage-B run.
+- Remove one remaining evaluation risk: action-index vocabulary mismatch during checkpoint loading.
+
+**Do**
+- Ran canonical robust evaluation for restarted Stage-A final checkpoint:
+  - Checkpoint: `project/logs/alphazero_stageA_wsl_20260328_211928/final_model.pt`
+  - Command: `python project/scripts/evaluate_alphazero_mcts.py --checkpoint ... --games 100 --bucket canonical --tag stageA_restart_20260328`
+  - Artifacts:
+    - `project/experiments/evaluation/robust/mcts/canonical/alphazero_eval_stageA_restart_20260328_20260328_223808.json`
+    - `project/experiments/evaluation/robust/mcts/canonical/alphazero_eval_stageA_restart_20260328_20260328_223808.md`
+- Fixed evaluator checkpoint restore path in `project/scripts/evaluate_alphazero_mcts.py`:
+  - `create_runtime()` now restores `action_indexer_state` from checkpoint payload.
+- Added regression coverage in `project/tests/test_checkpoint_resume_compat.py`:
+  - verifies evaluator runtime actually loads serialized action vocabulary state.
+- Added Stage-B config and launched warm-start training:
+  - Config: `project/configs/mcts/alphazero_stageB_wsl.yaml`
+  - Launch: resume from `project/logs/alphazero_stageA_wsl_20260328_211928/final_model.pt`
+  - Run dir: `project/logs/alphazero_stageB_wsl_20260328_225252/`
+  - Monitor log: `project/logs/training_alphazero_stageB_20260328.log`
+
+**Check**
+- Stage-A canonical robust results (n=100 each):
+  - vs Random: **59.0%**
+  - vs Greedy: **24.0%**
+  - vs PPO: **0.0%**
+- New evaluator/load-state regression passed:
+  - `pytest -q project/tests/test_checkpoint_resume_compat.py` -> **2 passed**
+- Stage-B process confirmed alive after launch (`train_alphazero_mcts.py` running in WSL).
+
+**Act**
+- Keep Stage-B running to completion, then run canonical robust eval with same protocol (`games=100`) for direct Stage-A vs Stage-B comparison.
+- If Stage-B remains <50% vs Greedy, next cycle should increase search strength first (`num_simulations`) before further scaling episodes.
+
 ---
 
 ## ✅ Completed Tasks (2026-02-24 to 2026-02-25)

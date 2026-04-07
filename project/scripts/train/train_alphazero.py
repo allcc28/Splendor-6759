@@ -7,9 +7,11 @@ import json
 import os
 import shutil
 import sys
+import time
 from datetime import datetime
 
 import yaml
+from tqdm import tqdm
 
 sys.path.insert(0, ".")
 sys.path.insert(0, "modules")
@@ -77,16 +79,21 @@ def main() -> None:
             if maybe_iter.isdigit():
                 start_iter = int(maybe_iter) + 1
 
-    for it in range(start_iter, iterations + 1):
+    pbar = tqdm(range(start_iter, iterations + 1), desc="AlphaZero Training", unit="iter")
+    for it in pbar:
+        iter_start = time.time()
         metrics = trainer.run_iteration()
+        iter_elapsed = time.time() - iter_start
         metrics["iteration"] = it
+        metrics["iter_time_sec"] = round(iter_elapsed, 1)
         history.append(metrics)
 
-        print(
-            f"[iter {it:03d}] samples={metrics['samples']} "
-            f"policy_loss={metrics['policy_loss']:.4f} "
-            f"value_loss={metrics['value_loss']:.4f} "
-            f"total_loss={metrics['total_loss']:.4f}"
+        buf_info = f" buf={metrics['buffer_size']}" if "buffer_size" in metrics else ""
+        pbar.set_postfix_str(
+            f"s={metrics['samples']}{buf_info} "
+            f"ploss={metrics['policy_loss']:.3f} "
+            f"vloss={metrics['value_loss']:.3f} "
+            f"{iter_elapsed:.0f}s/iter"
         )
 
         if it % ckpt_freq == 0:

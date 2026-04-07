@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import random
+from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
@@ -63,6 +64,11 @@ class AlphaZeroTrainer:
         self.batch_size = int(train_cfg.get("batch_size", 64))
         self.train_epochs = int(train_cfg.get("train_epochs", 3))
 
+        buffer_size = int(train_cfg.get("replay_buffer_size", 0))
+        self.replay_buffer: deque[TrainingSample] | None = (
+            deque(maxlen=buffer_size) if buffer_size > 0 else None
+        )
+
         self._set_seed(int(train_cfg.get("seed", 42)))
 
     def run_iteration(self) -> dict:
@@ -89,10 +95,17 @@ class AlphaZeroTrainer:
             samples.extend(self._play_one_game(mcts))
 
         if not samples:
-            return {"samples": 0, "policy_loss": 0.0, "value_loss": 0.0, "total_loss": 0.0}
+            return {"samples": 0, "buffer_size": 0, "policy_loss": 0.0, "value_loss": 0.0, "total_loss": 0.0}
 
-        metrics = self._train_on_samples(samples)
+        if self.replay_buffer is not None:
+            self.replay_buffer.extend(samples)
+            train_samples = list(self.replay_buffer)
+        else:
+            train_samples = samples
+
+        metrics = self._train_on_samples(train_samples)
         metrics["samples"] = len(samples)
+        metrics["buffer_size"] = len(train_samples)
         return metrics
 
     def save_checkpoint(self, path: str) -> None:
@@ -103,6 +116,8 @@ class AlphaZeroTrainer:
             "action_indexer_state": self.action_indexer.state_dict(),
             "config": self.config,
         }
+        if self.replay_buffer is not None:
+            payload["replay_buffer"] = list(self.replay_buffer)
         torch.save(payload, path)
 
     def load_checkpoint(self, path: str) -> dict:
@@ -117,6 +132,11 @@ class AlphaZeroTrainer:
         indexer_state = payload.get("action_indexer_state")
         if indexer_state:
             self.action_indexer.load_state_dict(indexer_state)
+
+        if self.replay_buffer is not None:
+            saved_buffer = payload.get("replay_buffer", [])
+            self.replay_buffer.extend(saved_buffer)
+
         return payload
 
     def _play_one_game(self, mcts: AlphaZeroMCTS) -> list[TrainingSample]:

@@ -43,3 +43,30 @@ def test_action_indexer_no_collisions_within_legal_set() -> None:
 
     indices = indexer.legal_indices(actions)
     assert len(set(int(x) for x in indices)) == len(actions)
+
+
+def test_action_indexer_trade_quantities_are_distinct() -> None:
+    """Regression: gems_flow must encode quantities, not just colors.
+
+    to_dict() returns a list of counts per color in fixed GemColor order,
+    so two trades with the same colors but different amounts must get
+    different policy-head indices.
+    """
+    from gym_splendor_code.envs.mechanics.action import ActionTradeGems
+    from gym_splendor_code.envs.mechanics.gems_collection import GemsCollection
+    from gym_splendor_code.envs.mechanics.enums import GemColor
+
+    take_2_red = ActionTradeGems(GemsCollection({
+        GemColor.GOLD: 0, GemColor.RED: 2, GemColor.GREEN: 0,
+        GemColor.BLUE: 0, GemColor.WHITE: 0, GemColor.BLACK: 0,
+    }))
+    take_1_red = ActionTradeGems(GemsCollection({
+        GemColor.GOLD: 0, GemColor.RED: 1, GemColor.GREEN: 0,
+        GemColor.BLUE: 0, GemColor.WHITE: 0, GemColor.BLACK: 0,
+    }))
+
+    indexer = StableActionIndexer(policy_size=2048)
+    idx_2 = indexer.action_index(take_2_red)
+    idx_1 = indexer.action_index(take_1_red)
+
+    assert idx_2 != idx_1, "Different gem quantities must map to different policy indices"

@@ -13,7 +13,7 @@ network:
 mcts:
   num_simulations: 100
   c_puct: 1.5
-  dirichlet_alpha: 0.3
+  dirichlet_alpha: 0.1
   dirichlet_epsilon: 0.25
   max_turns: 120
   temperature_cutoff: 20
