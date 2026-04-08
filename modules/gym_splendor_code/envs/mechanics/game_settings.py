@@ -26,4 +26,5 @@ MAX_NUMBER_OF_MOVES = 120
 
 INITIAL_GEMS_ON_BOARD_DICT = {gem_color : 4 if  gem_color != GemColor.GOLD else 5 for gem_color in GemColor}
 
-ALLOW_RESERVATIONS = False
+# Must be True for standard Splendor + fast generator; False disables all reserve actions.
+ALLOW_RESERVATIONS = True

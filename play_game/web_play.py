@@ -748,18 +748,18 @@ class ScoreBasedPPOOpponent:
 
 
 def _resolve_event_model_info():
-    """Use the fixed v3_1m_1300000_steps.zip model for the event-based opponent.
+    """Use the ppo_event_based_A_hybrid_start_s42_20260328_155415_1000000_steps.zip model for the event-based opponent.
 
     This artifact is loaded via PPO (non-maskable) for compatibility.
     """
     root = Path(project_root)
-    model_path = root / 'project_event_based' / 'notebooks' / 'models' / 'v3_1m_1300000_steps.zip'
+    model_path = root / 'project_event_based' / 'notebooks' / 'models' / 'A_hybrid_start' / 'ppo_event_based_A_hybrid_start_s42_20260328_155415_1000000_steps.zip'
     if not model_path.exists():
         raise FileNotFoundError(f'Event model not found: {model_path}')
     return {
         'model_path': str(model_path),
         'model_kind': 'maskable',
-        'model_source': 'v3_1m_1300000_steps',
+        'model_source': 'ppo_event_based_A_hybrid_start_s42_20260328_155415_1000000_steps',
     }
 
 
