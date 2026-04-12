@@ -17,7 +17,7 @@ class GemsCollection():
         if gems_values_dict is None:
             self.gems_dict = {gem_color : 0 for gem_color in GemColor}
         else:
-            self.gems_dict = gems_values_dict
+            self.gems_dict = dict(gems_values_dict)
 
     def value(self, gem_color):
         """Returns value of gem_color form this gems collection."""
