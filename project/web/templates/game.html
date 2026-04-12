@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splendor - Play vs PPO Score-Based Agent</title>
+    <title>Splendor AI Arena</title>
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            margin: 10px;
             /* Simulate a textured board/table background */
             background-color: #1a2a3c;
             background-image:
@@ -34,8 +35,8 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            padding: 24px;
-            gap: 16px;
+            padding: 12px;
+            gap: 12px;
         }
         .top-row {
             display: flex;
@@ -131,14 +132,16 @@
         }
         .gem {
             display: inline-block;
-            width: 30px;
-            height: 30px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
             text-align: center;
-            line-height: 30px;
+            line-height: 36px;
             font-weight: bold;
+            font-size: 13px;
             color: white;
             transition: transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
         .gem.selected {
             transform: scale(1.15);
@@ -200,11 +203,206 @@
         .card.level2 { }
         .card.level3 { }
 
-        .card.red { background-color: #dc3545; border: 2px solid #dc3545; color: white; }
-        .card.blue { background-color: #007bff; border: 2px solid #007bff; color: white; }
-        .card.green { background-color: #28a745; border: 2px solid #28a745; color: white; }
-        .card.white { background-color: #f8f9fa; border: 2px solid #f8f9fa; color: black; }
-        .card.black { background-color: #343a40; border: 2px solid #343a40; color: white; }
+        .card.red { background: linear-gradient(135deg, #dc3545, #c82333); border: 2px solid #dc3545; color: white; }
+        .card.blue { background: linear-gradient(135deg, #007bff, #0056b3); border: 2px solid #007bff; color: white; }
+        .card.green { background: linear-gradient(135deg, #28a745, #1e7e34); border: 2px solid #28a745; color: white; }
+        .card.white { background: linear-gradient(135deg, #f8f9fa, #e2e6ea); border: 2px solid #ddd; color: black; }
+        .card.black { background: linear-gradient(135deg, #343a40, #1d2124); border: 2px solid #343a40; color: white; }
+
+        .card-bonus {
+            font-size: 22px;
+            opacity: 0.9;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .move-log-panel {
+            position: fixed;
+            right: 12px;
+            top: 80px;
+            width: 280px;
+            max-height: 70vh;
+            background: rgba(0,0,0,0.88);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            resize: both;
+        }
+        .move-log-header {
+            padding: 10px 14px;
+            font-weight: 700;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.05);
+            cursor: grab;
+            user-select: none;
+        }
+        .move-log-header:active {
+            cursor: grabbing;
+        }
+        .move-log-minimize {
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.6;
+            margin-left: 8px;
+        }
+        .move-log-minimize:hover {
+            opacity: 1;
+        }
+        .move-log-panel.minimized .move-log-entries {
+            display: none;
+        }
+        .move-log-panel.minimized {
+            max-height: none;
+            height: auto !important;
+        }
+        .turn-badge {
+            background: #ffc107;
+            color: black;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .move-log-entries {
+            overflow-y: auto;
+            padding: 8px;
+            flex: 1;
+        }
+        .move-log-entry {
+            padding: 5px 8px;
+            margin-bottom: 3px;
+            border-radius: 6px;
+            line-height: 1.4;
+        }
+        .move-log-entry.player-you {
+            background: rgba(40, 167, 69, 0.2);
+            border-left: 3px solid #28a745;
+        }
+        .move-log-entry.player-ai {
+            background: rgba(220, 53, 69, 0.2);
+            border-left: 3px solid #dc3545;
+        }
+        .move-log-turn {
+            color: rgba(255,255,255,0.5);
+            font-size: 10px;
+            margin-right: 4px;
+        }
+        .move-log-player {
+            font-weight: 700;
+            margin-right: 4px;
+        }
+        .move-log-desc {
+            color: rgba(255,255,255,0.85);
+        }
+        .move-log-empty {
+            color: rgba(255,255,255,0.4);
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .stats-toggle-btn {
+            padding: 6px 14px;
+            background: #6f42c1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            margin-left: 12px;
+        }
+        .stats-toggle-btn:hover { background: #5a32a3; }
+        .stats-panel {
+            width: 100%;
+            background: rgba(10,10,30,0.95);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            color: white;
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.6);
+            margin-bottom: 12px;
+        }
+        .stats-header {
+            padding: 12px 16px;
+            font-weight: 700;
+            font-size: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(111,66,193,0.3);
+        }
+        .stats-close { cursor: pointer; font-size: 20px; opacity: 0.7; }
+        .stats-close:hover { opacity: 1; }
+        .stats-body {
+            padding: 12px 16px;
+            overflow-y: auto;
+            max-height: 50vh;
+            font-size: 13px;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+        .stats-table th {
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            color: #ffc107;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+        .stats-table td {
+            padding: 5px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .stats-table tr:hover td {
+            background: rgba(255,255,255,0.05);
+        }
+        .stats-section-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: #ffc107;
+            margin: 12px 0 6px;
+        }
+        .stats-win { color: #28a745; font-weight: 700; }
+        .stats-loss { color: #dc3545; font-weight: 700; }
+
+        /* Responsive */
+        @media (max-width: 1400px) {
+            .top-row { flex-wrap: wrap; }
+            .top-left { flex: 1 1 100%; }
+            .top-center, .top-right { flex: 1 1 45%; }
+        }
+        @media (max-width: 900px) {
+            .top-center, .top-right { flex: 1 1 100%; }
+            .board-row { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 110px; }
+            .player-main-row { flex-direction: column; }
+            .move-log-panel { width: 220px; }
+            .stats-panel { width: 100%; }
+        }
+        @media (max-width: 600px) {
+            body { margin: 4px; }
+            .board-row { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 120px; }
+            .cards { grid-template-columns: repeat(2, 1fr); }
+            .move-log-panel { width: 180px; font-size: 10px; }
+        }
+
+        .page {
+            max-width: 100%;
+            width: 100%;
+        }
 
         .card-header {
             display: flex;
@@ -276,8 +474,8 @@
             margin-top: 6px;
         }
         .cost-token {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             border: 1px solid rgba(0,0,0,0.18);
             display: flex;
@@ -353,8 +551,8 @@
             display: flex;
             flex-direction: column;
             flex: 1;
-            padding: 24px;
-            gap: 16px;
+            padding: 12px;
+            gap: 12px;
         }
 
         .top-row {
@@ -646,16 +844,29 @@
     <div class="page">
         <div class="top-bar">
             <div>
-                <div class="title">You must play</div>
+                <div class="title">Splendor AI Arena</div>
                 <div class="opponent-controls">
-                    <label><input type="radio" name="opponent" value="value" checked> Value-based Agent</label>
-                    <label><input type="radio" name="opponent" value="event"> Event-based Agent</label>
                     <label><input type="radio" name="opponent" value="random"> Random</label>
+                    <label><input type="radio" name="opponent" value="greedy"> Greedy</label>
+                    <label><input type="radio" name="opponent" value="value"> PPO Score</label>
+                    <label><input type="radio" name="opponent" value="event"> PPO Event</label>
+                    <label><input type="radio" name="opponent" value="lookahead" checked> PPO+Lookahead</label>
                 </div>
             </div>
         </div>
 
-        <button id="new-game-btn" class="new-game-btn restart-btn" onclick="handleNewGame()">Start</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button class="stats-toggle-btn" onclick="toggleStats()">Stats</button>
+            <button id="new-game-btn" class="new-game-btn restart-btn" onclick="handleNewGame()">Start</button>
+        </div>
+
+        <div class="stats-panel" id="stats-panel" style="display:none;">
+            <div class="stats-header">
+                <span>Battle Statistics</span>
+                <span class="stats-close" onclick="toggleStats()">&times;</span>
+            </div>
+            <div class="stats-body" id="stats-body">Loading...</div>
+        </div>
 
         <div class="top-confirm-bar" id="top-confirm-bar">
             <div id="gem-selection-summary">Selected: None</div>
@@ -718,6 +929,19 @@
         </div>
         <div id="actions" style="display:none;"></div>
 
+        <div class="move-log-panel" id="move-log-panel">
+            <div class="move-log-header" id="move-log-drag-handle">
+                <span>Move Log</span>
+                <span style="display:flex;align-items:center;gap:6px;">
+                    <span id="turn-counter" class="turn-badge">Turn 0</span>
+                    <span class="move-log-minimize" id="move-log-toggle" title="Minimize/Expand">_</span>
+                </span>
+            </div>
+            <div class="move-log-entries" id="move-log-entries">
+                <div class="move-log-empty">Start a game to see moves here</div>
+            </div>
+        </div>
+
         <div class="must-play-banner" id="status">Waiting to start the game...</div>
 
 
@@ -755,6 +979,11 @@
                 reasonText = 'Scores tied, decided by card count';
             } else if (gameState.winner_reason === 'draw') {
                 reasonText = 'Scores and card counts are equal';
+            }
+
+            // Auto-refresh stats on game end
+            if (document.getElementById('stats-panel').style.display !== 'none') {
+                loadStats();
             }
 
             alert(
@@ -889,6 +1118,9 @@
             // Update actions
             updateActions();
 
+            // Update move log
+            updateMoveLog();
+
             // Debug: log how many buy/reserve actions exist (helps confirm reservation is enabled)
             console.debug('legal_actions:', gameState.legal_actions.length,
                 'buy:', gameState.legal_actions.filter(a => a.action_type === 'buy').length,
@@ -904,7 +1136,7 @@
                 if (count > 0) {
                     const gemEl = document.createElement('div');
                     gemEl.className = `gem ${color}`;
-                    gemEl.textContent = count;
+                    gemEl.textContent = `${getGemSymbol(color)}${count}`;
                     gemEl.dataset.color = color;
                     gemEl.title = `${getColorName(color)}: ${count}`;
 
@@ -938,13 +1170,14 @@
                 const canBuy = relevantActions.some(a => a.action_type === 'buy');
                 if (canBuy) cardEl.classList.add('can-buy');
 
+                const bonusSymbol = getGemSymbol(card.color);
+                const bonusName = getColorName(card.color);
                 cardEl.innerHTML = `
                     <div class="card-header">
-                        <div class="card-points"><strong>${card.points}</strong></div>
-                        <div class="card-level">L${card.level}</div>
+                        <div class="card-points"><strong>${card.points > 0 ? card.points : ''}</strong></div>
+                        <div class="card-bonus" title="Bonus: ${bonusName}">${bonusSymbol}</div>
                     </div>
                     <div class="card-body">
-                    
                         <div class="card-cost">${renderCostTokens(card.cost)}</div>
                     </div>
                 `;
@@ -1067,7 +1300,7 @@
                 .filter(color => cost[color] > 0)
                 .map(color => {
                     const count = cost[color];
-                    return `<span class="cost-token ${color}" title="${getColorName(color)}: ${count}">${count}</span>`;
+                    return `<span class="cost-token ${color}" title="${getColorName(color)}: ${count}">${getGemSymbol(color)}${count}</span>`;
                 })
                 .join('');
         }
@@ -1354,9 +1587,133 @@
             return Object.entries(cost).filter(([_, v]) => v > 0).map(([k, v]) => `${getColorName(k)}:${v}`).join(', ');
         }
 
+        function updateMoveLog() {
+            const entries = document.getElementById('move-log-entries');
+            const turnCounter = document.getElementById('turn-counter');
+            if (!gameState || !gameState.move_log) {
+                entries.innerHTML = '<div class="move-log-empty">Start a game to see moves here</div>';
+                return;
+            }
+            turnCounter.textContent = `Turn ${gameState.turn_number || 0}`;
+            if (gameState.move_log.length === 0) {
+                entries.innerHTML = '<div class="move-log-empty">No moves yet</div>';
+                return;
+            }
+            entries.innerHTML = gameState.move_log.map(m => {
+                const isYou = m.player === 'You';
+                const cls = isYou ? 'player-you' : 'player-ai';
+                return `<div class="move-log-entry ${cls}">
+                    <span class="move-log-turn">#${m.turn}</span>
+                    <span class="move-log-player">${m.player}:</span>
+                    <span class="move-log-desc">${m.desc}</span>
+                </div>`;
+            }).join('');
+            entries.scrollTop = entries.scrollHeight;
+        }
+
+        // --- Stats panel ---
+        function toggleStats() {
+            const panel = document.getElementById('stats-panel');
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                loadStats();
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+
+        function loadStats() {
+            fetch('/stats').then(r => r.json()).then(data => {
+                const body = document.getElementById('stats-body');
+                if (!data.summary || Object.keys(data.summary).length === 0) {
+                    body.innerHTML = '<p style="color:rgba(255,255,255,0.5)">No games played yet.</p>';
+                    return;
+                }
+
+                // Summary table
+                let html = '<div class="stats-section-title">Summary by Opponent</div>';
+                html += '<table class="stats-table"><tr><th>Opponent</th><th>Games</th><th>You Win</th><th>AI Win</th><th>Win%</th><th>Avg Score</th><th>Avg Turns</th><th>Avg Time</th></tr>';
+                for (const [opp, s] of Object.entries(data.summary)) {
+                    html += `<tr>
+                        <td>${opp}</td>
+                        <td>${s.total}</td>
+                        <td class="stats-win">${s.human_wins}</td>
+                        <td class="stats-loss">${s.ai_wins}</td>
+                        <td>${s.human_win_rate}%</td>
+                        <td>${s.avg_human_score} vs ${s.avg_ai_score}</td>
+                        <td>${s.avg_turns}</td>
+                        <td>${s.avg_duration}s</td>
+                    </tr>`;
+                }
+                html += '</table>';
+
+                // Recent games
+                if (data.games && data.games.length > 0) {
+                    html += '<div class="stats-section-title">Recent Games</div>';
+                    html += '<table class="stats-table"><tr><th>#</th><th>Opponent</th><th>Result</th><th>Score</th><th>Turns</th><th>Time</th></tr>';
+                    const recent = data.games.slice(-15).reverse();
+                    recent.forEach((g, i) => {
+                        const w = g.winner === 'human' ? '<span class="stats-win">WIN</span>' : '<span class="stats-loss">LOSS</span>';
+                        const scores = g.final_scores || {};
+                        const turns = g.turns || '?';
+                        const dur = g.duration_sec ? g.duration_sec + 's' : '?';
+                        html += `<tr>
+                            <td>${data.games.length - i}</td>
+                            <td>${g.opponent_label || g.opponent_type}</td>
+                            <td>${w}</td>
+                            <td>${scores.human || 0} - ${scores.ai || 0}</td>
+                            <td>${turns}</td>
+                            <td>${dur}</td>
+                        </tr>`;
+                    });
+                    html += '</table>';
+                }
+
+                body.innerHTML = html;
+            }).catch(err => {
+                document.getElementById('stats-body').innerHTML = '<p>Error loading stats</p>';
+            });
+        }
+
+        // --- Draggable move log ---
+        (function() {
+            const panel = document.getElementById('move-log-panel');
+            const handle = document.getElementById('move-log-drag-handle');
+            const toggle = document.getElementById('move-log-toggle');
+            let isDragging = false, offsetX = 0, offsetY = 0;
+
+            handle.addEventListener('mousedown', function(e) {
+                if (e.target === toggle) return;
+                isDragging = true;
+                offsetX = e.clientX - panel.getBoundingClientRect().left;
+                offsetY = e.clientY - panel.getBoundingClientRect().top;
+                panel.style.transition = 'none';
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                panel.style.left = (e.clientX - offsetX) + 'px';
+                panel.style.top = (e.clientY - offsetY) + 'px';
+                panel.style.right = 'auto';
+            });
+            document.addEventListener('mouseup', function() {
+                isDragging = false;
+                panel.style.transition = '';
+            });
+
+            toggle.addEventListener('click', function() {
+                panel.classList.toggle('minimized');
+                toggle.textContent = panel.classList.contains('minimized') ? '+' : '_';
+            });
+        })();
+
         function getColorName(color) {
-            const names = {red: 'Red', blue: 'Blue', green: 'Green', white: 'White', black: 'Black', gold: 'Gold'};
+            const names = {red: 'Ruby', blue: 'Sapphire', green: 'Emerald', white: 'Diamond', black: 'Onyx', gold: 'Gold'};
             return names[color] || color;
+        }
+
+        function getGemSymbol(color) {
+            const symbols = {red: '\u2666', blue: '\u25c6', green: '\u25c8', white: '\u25c7', black: '\u2b23', gold: '\u2605'};
+            return symbols[color] || '\u25cf';
         }
 
 

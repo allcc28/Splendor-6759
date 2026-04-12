@@ -7,6 +7,7 @@ Run with: python project/scripts/web_play.py
 import os
 import sys
 import json
+import time
 import subprocess
 import importlib
 import copy
@@ -112,6 +113,9 @@ use_ai = True  # Toggle between AI and random opponent
 final_round_active = False
 opponent_type = 'value'
 current_game_logged = False
+move_log = []       # list of {turn, player, action_desc}
+turn_number = 0
+game_start_time = None  # time.time() when game started
 
 # Cached opponent instances — created once per type, reused across games.
 _opponent_cache = {}
@@ -676,7 +680,7 @@ def _resolve_value_model_info():
             }
         print(f'Warning: VALUE_AGENT_MODEL_PATH does not exist: {explicit}')
 
-    v3_default = root / 'project' / 'logs' / 'maskable_ppo_score_v3_20260303_183435' / 'final_model.zip'
+    v3_default = root / 'project' / 'logs' / 'ppo_score_based' / 'maskable_ppo_score_v3_20260303_183435' / 'final_model.zip'
     if v3_default.exists():
         return {
             'model_path': str(v3_default),
@@ -691,18 +695,17 @@ def _resolve_value_model_info():
 
 
 class ScoreBasedPPOOpponent:
-    """Web opponent adapter for trained score-based PPO / MaskablePPO models."""
+    """Score-based PPO using in-process MaskablePPO inference (fast)."""
 
     def __init__(self):
+        from sb3_contrib import MaskablePPO
         model_info = _resolve_value_model_info()
         self.model_path = model_info['model_path']
-        self.model_kind = model_info['model_kind']
-        self.model_source = model_info['model_source']
         self.vectorizer = SplendorStateVectorizer()
-        self.inference_script = os.path.join(script_dir, 'web_score_inference.py')
-        self.python_cmd = _find_value_inference_python()
-        self.strict_inference = True
-        print(f'ScoreBasedPPOOpponent: model={self.model_path} python={self.python_cmd}')
+        self.model = MaskablePPO.load(self.model_path, device='cpu')
+        self.model.policy.set_training_mode(False)
+        self._obs_dim = self.model.observation_space.shape[0]
+        print(f'ScoreBasedPPOOpponent: model={self.model_path} obs_dim={self._obs_dim} (in-process)')
 
     def choose_web_action(self, game_env_obj):
         game_env_obj.update_actions()
@@ -713,34 +716,21 @@ class ScoreBasedPPOOpponent:
         state = game_env_obj.current_state_of_the_game
         obs = self.vectorizer.vectorize(state, player_id=state.active_player_id, turn_count=0)
 
-        payload = {
-            'model_path': self.model_path,
-            'model_kind': self.model_kind,
-            'observation': obs.tolist(),
-            'legal_actions_count': len(legal_actions),
-        }
+        # Pad/truncate to expected obs dim
+        if len(obs) < self._obs_dim:
+            obs = np.concatenate([obs, np.zeros(self._obs_dim - len(obs), dtype=np.float32)])
+        obs = obs[:self._obs_dim]
 
-        try:
-            env = os.environ.copy()
-            env.setdefault('LANG', 'en_US.UTF-8')
-            env.setdefault('LC_ALL', 'en_US.UTF-8')
-            env.setdefault('PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION', 'python')
-            completed = subprocess.run(
-                [self.python_cmd, self.inference_script],
-                input=json.dumps(payload),
-                text=True,
-                capture_output=True,
-                check=True,
-                env=env,
-                timeout=120,
-            )
-            result = json.loads(completed.stdout)
-            action_idx = int(result.get('action_idx', 0))
-        except Exception as exc:
-            raise RuntimeError(f'score PPO inference failed: {exc}') from exc
+        # Build action mask
+        n_actions = self.model.action_space.n
+        mask = np.zeros(n_actions, dtype=bool)
+        mask[:len(legal_actions)] = True
 
-        if action_idx < 0 or action_idx >= len(legal_actions):
-            raise RuntimeError(f'value model returned invalid action index {action_idx} for {len(legal_actions)} legal actions')
+        import torch
+        with torch.no_grad():
+            obs_t = torch.as_tensor(obs).unsqueeze(0).float()
+            action, _ = self.model.predict(obs_t.numpy(), action_masks=mask, deterministic=True)
+            action_idx = int(action)
 
         return legal_actions[action_idx]
 
@@ -749,18 +739,15 @@ class ScoreBasedPPOOpponent:
 
 
 def _resolve_event_model_info():
-    """Use the fixed v3_1m_1300000_steps.zip model for the event-based opponent.
-
-    This artifact is loaded via PPO (non-maskable) for compatibility.
-    """
+    """Use the best event-based PPO model (V1)."""
     root = Path(project_root)
-    model_path = root / 'project' / 'logs' / 'ppo_event_based_teammates' / 'models' / 'v3_1m_1300000_steps.zip'
+    model_path = root / 'project' / 'logs' / 'ppo_event_based' / 'maskable_ppo_event_v1_20260309_110155' / 'eval' / 'best_model.zip'
     if not model_path.exists():
         raise FileNotFoundError(f'Event model not found: {model_path}')
     return {
         'model_path': str(model_path),
         'model_kind': 'maskable',
-        'model_source': 'v3_1m_1300000_steps',
+        'model_source': 'maskable_ppo_event_v1_best',
     }
 
 
@@ -960,12 +947,131 @@ class EventBasedPPOOpponent:
             raise RuntimeError(f'event PPO inference failed: {exc}') from exc
 
 
+def _describe_action(action):
+    """Human-readable description of a game action."""
+    gem_names = ['gold', 'red', 'green', 'blue', 'white', 'black']
+    gem_symbols = {'gold': '\u2605', 'red': '\u2666', 'green': '\u25c8', 'blue': '\u25c6', 'white': '\u25c7', 'black': '\u2b23'}
+
+    def _fmt_gems(flow):
+        taken, returned = [], []
+        if isinstance(flow, (list, tuple)):
+            for i, cnt in enumerate(flow):
+                if i < len(gem_names):
+                    sym = gem_symbols.get(gem_names[i], '')
+                    if cnt > 0:
+                        taken.append(f"{sym}{gem_names[i]}x{cnt}")
+                    elif cnt < 0:
+                        returned.append(f"{sym}{gem_names[i]}x{abs(cnt)}")
+        return taken, returned
+
+    try:
+        d = action.to_dict()
+        atype = d.get('action_type', '?')
+        gems_flow = d.get('gems_flow', [])
+        card_id = d.get('card')
+
+        if atype == 'buy':
+            # Try to get card info from the game state
+            card_desc = f"card#{card_id}" if card_id is not None else "card"
+            try:
+                ae = action.evaluate(game_env.current_state_of_the_game)
+                pts = int(ae.get('card', [0, 0, 0])[2]) if ae.get('card') else 0
+                if pts > 0:
+                    card_desc = f"card ({pts}pts)"
+            except Exception:
+                pass
+            taken, returned = _fmt_gems(gems_flow)
+            spent = ", ".join(returned) if returned else ""
+            return f"Buy {card_desc}" + (f" [{spent}]" if spent else "")
+
+        elif atype == 'reserve':
+            taken, _ = _fmt_gems(gems_flow)
+            gold = " +\u2605gold" if any('gold' in t for t in taken) else ""
+            return f"Reserve card#{card_id}{gold}"
+
+        elif atype == 'trade_gems':
+            taken, returned = _fmt_gems(gems_flow)
+            desc = "Take " + ", ".join(taken) if taken else "Trade"
+            if returned:
+                desc += " (return " + ", ".join(returned) + ")"
+            return desc
+
+        return str(atype)
+    except Exception as e:
+        return f"action ({e})"
+
+
+class EventPPODirectOpponent:
+    """Event-based PPO using PPOLookaheadAgent with depth=0 (pure PPO greedy)."""
+
+    def __init__(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "ppo_lookahead_agent",
+            os.path.join(project_root, "project", "src", "agents", "ppo_lookahead_agent.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        model_path = os.path.join(
+            project_root, "project", "logs", "ppo_event_based",
+            "maskable_ppo_event_v1_20260309_110155", "eval", "best_model.zip",
+        )
+        self._agent = mod.PPOLookaheadAgent(
+            ppo_model_path=model_path,
+            top_k=15, search_depth=0,
+        )
+        print(f'EventPPODirectOpponent: loaded (model={model_path})')
+
+    def choose_action(self, observation, previous_actions):
+        return self._agent.choose_action(observation, previous_actions)
+
+
+class GreedyOpponent:
+    """Greedy heuristic agent using ValueBasedEvaluator."""
+
+    def __init__(self):
+        from agents.greedy_agent_boost import GreedyAgentBoost
+        self._agent = GreedyAgentBoost(name="Greedy", mode="value")
+        print('GreedyOpponent: loaded')
+
+    def choose_action(self, observation, previous_actions):
+        return self._agent.choose_action(observation, previous_actions)
+
+
+class LookaheadOpponent:
+    """PPO+Lookahead agent — our strongest agent."""
+
+    def __init__(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "ppo_lookahead_agent",
+            os.path.join(project_root, "project", "src", "agents", "ppo_lookahead_agent.py"),
+        )
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        model_path = os.path.join(
+            project_root, "project", "logs", "ppo_event_based",
+            "maskable_ppo_event_v1_20260309_110155", "eval", "best_model.zip",
+        )
+        self._agent = mod.PPOLookaheadAgent(
+            ppo_model_path=model_path,
+            top_k=15, search_depth=1,
+            alpha=0.3, beta=0.5, gamma=0.2,
+        )
+        print(f'LookaheadOpponent: loaded (model={model_path})')
+
+    def choose_action(self, observation, previous_actions):
+        return self._agent.choose_action(observation, previous_actions)
+
+
 def _get_opponent_label():
     """Human-readable opponent label for UI and logs."""
     mapping = {
-        'value': 'Value-based Agent',
-        'event': 'Event-based Agent',
+        'value': 'PPO Score-based (V4a)',
+        'event': 'PPO Event-based (V5)',
         'random': 'Random Agent',
+        'greedy': 'Greedy Heuristic',
+        'lookahead': 'PPO+Lookahead (Best)',
     }
     return mapping.get(opponent_type, 'Value-based Agent')
 
@@ -1034,6 +1140,7 @@ def _persist_game_result_if_needed():
         return
 
     result = _get_match_result()
+    duration = round(time.time() - game_start_time, 1) if game_start_time else 0
     history_record = {
         'timestamp': datetime.utcnow().isoformat(timespec='seconds') + 'Z',
         'opponent_type': opponent_type,
@@ -1042,6 +1149,8 @@ def _persist_game_result_if_needed():
         'winner_reason': result['winner_reason'],
         'final_scores': result['final_scores'],
         'final_card_counts': result['final_card_counts'],
+        'turns': turn_number,
+        'duration_sec': duration,
     }
 
     history_file = os.path.join(script_dir, 'outputs', 'web_game_history.jsonl')
@@ -1053,10 +1162,13 @@ def _persist_game_result_if_needed():
 
 def init_game(selected_opponent_type='value'):
     """Initialize a new game"""
-    global game_env, ai_agent, vectorizer, legal_actions, game_done, winner, use_ai, final_round_active, opponent_type, current_game_logged
+    global game_env, ai_agent, vectorizer, legal_actions, game_done, winner, use_ai, final_round_active, opponent_type, current_game_logged, move_log, turn_number, game_start_time
+    move_log = []
+    turn_number = 0
+    game_start_time = time.time()
 
-    opponent_type = selected_opponent_type if selected_opponent_type in ('value', 'event', 'random') else 'value'
-    use_ai = opponent_type in ('value', 'event')
+    opponent_type = selected_opponent_type if selected_opponent_type in ('value', 'event', 'random', 'greedy', 'lookahead') else 'value'
+    use_ai = opponent_type in ('value', 'event', 'greedy', 'lookahead')
 
     # Initialize vectorizer (used for debugging / future model integration)
     vectorizer = SplendorStateVectorizer()
@@ -1066,15 +1178,19 @@ def init_game(selected_opponent_type='value'):
 
     # Choose opponent — reuse cached instance to avoid re-loading model on every game.
     global _opponent_cache
-    if opponent_type in ('event', 'value'):
+    if opponent_type in ('event', 'value', 'greedy', 'lookahead'):
         if opponent_type not in _opponent_cache:
             try:
                 if opponent_type == 'event':
-                    _opponent_cache['event'] = EventBasedPPOOpponent()
+                    _opponent_cache['event'] = EventPPODirectOpponent()
+                elif opponent_type == 'greedy':
+                    _opponent_cache['greedy'] = GreedyOpponent()
+                elif opponent_type == 'lookahead':
+                    _opponent_cache['lookahead'] = LookaheadOpponent()
                 else:
                     _opponent_cache['value'] = ScoreBasedPPOOpponent()
             except Exception as exc:
-                raise RuntimeError(f'could not load {opponent_type} PPO model: {exc}') from exc
+                raise RuntimeError(f'could not load {opponent_type} agent: {exc}') from exc
         ai_agent = _opponent_cache[opponent_type]
         if ai_agent is not None and hasattr(ai_agent, 'reset_context'):
             try:
@@ -1161,7 +1277,9 @@ def get_game_state():
         'opponent_type': opponent_type,
         'opponent_label': _get_opponent_label(),
         **_get_match_result(),
-        'current_player': 'human' if state.active_player_id == 0 else 'ai'
+        'current_player': 'human' if state.active_player_id == 0 else 'ai',
+        'move_log': move_log[-30:],  # last 30 entries
+        'turn_number': turn_number,
     }
 
 @app.route('/')
@@ -1189,7 +1307,7 @@ def new_game():
 @app.route('/make_move', methods=['POST'])
 def make_move():
     """Handle human player's move"""
-    global legal_actions, game_done, winner
+    global legal_actions, game_done, winner, move_log, turn_number
 
     if game_done:
         return jsonify({'error': 'Game is already finished'})
@@ -1200,9 +1318,11 @@ def make_move():
     if action_idx is None or action_idx < 0 or action_idx >= len(legal_actions):
         return jsonify({'error': 'Invalid action index'})
 
+    turn_number += 1
     state_before_human = copy.deepcopy(game_env.current_state_of_the_game)
     # Execute human move
     action = legal_actions[action_idx]
+    move_log.append({'turn': turn_number, 'player': 'You', 'desc': _describe_action(action)})
     obs, reward, done, info = game_env.step('deterministic', action, return_observation=False)
 
     # Update legal actions based on the new state
@@ -1232,6 +1352,7 @@ def make_move():
         game_done = True
         winner = 'human'
     else:
+        move_log.append({'turn': turn_number, 'player': _get_opponent_label(), 'desc': _describe_action(ai_action)})
         obs, reward, done, info = game_env.step('deterministic', ai_action, return_observation=False)
         state_after_ai = game_env.current_state_of_the_game
         # Update legal actions after AI move
@@ -1251,6 +1372,58 @@ def make_move():
     legal_actions = game_env.action_space.list_of_actions
 
     return jsonify(get_game_state())
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    """Return game history stats grouped by opponent type."""
+    history_file = os.path.join(script_dir, 'outputs', 'web_game_history.jsonl')
+    if not os.path.exists(history_file):
+        return jsonify({'games': [], 'summary': {}})
+
+    games = []
+    with open(history_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    games.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+
+    # Build per-opponent summary
+    summary = {}
+    for g in games:
+        opp = g.get('opponent_label', g.get('opponent_type', '?'))
+        if opp not in summary:
+            summary[opp] = {'total': 0, 'human_wins': 0, 'ai_wins': 0, 'draws': 0,
+                            'total_human_score': 0, 'total_ai_score': 0,
+                            'total_turns': 0, 'total_duration': 0}
+        s = summary[opp]
+        s['total'] += 1
+        w = g.get('winner', '')
+        if w == 'human':
+            s['human_wins'] += 1
+        elif w == 'ai':
+            s['ai_wins'] += 1
+        else:
+            s['draws'] += 1
+        scores = g.get('final_scores', {})
+        s['total_human_score'] += scores.get('human', 0)
+        s['total_ai_score'] += scores.get('ai', 0)
+        s['total_turns'] += g.get('turns', 0)
+        s['total_duration'] += g.get('duration_sec', 0)
+
+    # Compute averages
+    for opp, s in summary.items():
+        n = s['total']
+        s['avg_human_score'] = round(s['total_human_score'] / n, 1) if n else 0
+        s['avg_ai_score'] = round(s['total_ai_score'] / n, 1) if n else 0
+        s['avg_turns'] = round(s['total_turns'] / n, 1) if n else 0
+        s['avg_duration'] = round(s['total_duration'] / n, 1) if n else 0
+        s['human_win_rate'] = round(s['human_wins'] / n * 100, 1) if n else 0
+
+    return jsonify({'games': games[-50:], 'summary': summary})
+
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
