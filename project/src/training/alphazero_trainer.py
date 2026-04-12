@@ -1,4 +1,10 @@
-"""Minimal AlphaZero trainer: self-play collection + supervised updates."""
+"""Minimal AlphaZero trainer: self-play collection + supervised updates.
+
+Supports two modes:
+- Legacy: uses POINTS_TO_WIN instant-end terminal logic.
+- Adapter (V2): uses SplendorPlanningAdapter with let_all_move semantics.
+  Enable via ``use_adapter: true`` in the config training section.
+"""
 
 from __future__ import annotations
 
@@ -18,6 +24,27 @@ from mcts.action_indexer import StableActionIndexer
 from mcts.alphazero_mcts import AlphaZeroMCTS, SearchResult, TorchPolicyValueFunction
 from nn.policy_value_net import SplendorPolicyValueNet
 from nn.tensor_encoder import SplendorTensorEncoder
+from planning.adapter import SplendorPlanningAdapter
+# Lazy imports for reward shaping to avoid circular/relative import issues.
+_reward_shaping_imports_loaded = False
+__compute_event_reward = None
+_DEFAULT_EVENT_WEIGHTS = None
+__capture_state_snapshot = None
+__detect_events = None
+
+
+def _load_reward_shaping_imports():
+    global _reward_shaping_imports_loaded, _compute_event_reward, _DEFAULT_EVENT_WEIGHTS
+    global _capture_state_snapshot, _detect_events
+    if _reward_shaping_imports_loaded:
+        return
+    from reward.event_based_reward import compute_event_reward as cer, DEFAULT_EVENT_WEIGHTS as dew
+    from utils.event_detector import capture_state_snapshot as css, detect_events as de
+    _compute_event_reward = cer
+    _DEFAULT_EVENT_WEIGHTS = dew
+    _capture_state_snapshot = css
+    _detect_events = de
+    _reward_shaping_imports_loaded = True
 
 
 @dataclass
@@ -69,6 +96,28 @@ class AlphaZeroTrainer:
             deque(maxlen=buffer_size) if buffer_size > 0 else None
         )
 
+        # V2 features: adapter mode and FPU.
+        self.use_adapter = bool(train_cfg.get("use_adapter", False))
+        self.fpu_value = mcts_cfg.get("fpu_value", None)
+        if self.fpu_value is not None:
+            self.fpu_value = float(self.fpu_value)
+
+        # Reward shaping: event-based intermediate rewards blended with terminal outcome.
+        reward_cfg = config.get("reward_shaping", {})
+        self.use_reward_shaping = bool(reward_cfg.get("enabled", False))
+        self.shaping_discount = float(reward_cfg.get("discount", 0.99))
+        self.shaping_weight = float(reward_cfg.get("weight", 0.3))
+        # weight controls blend: value = (1-w)*terminal + w*shaped_return
+        event_weights = reward_cfg.get("event_weights", None)
+        if self.use_reward_shaping:
+            _load_reward_shaping_imports()
+        if event_weights is not None:
+            self.event_weights = np.array(event_weights, dtype=np.float32)
+        else:
+            self.event_weights = _DEFAULT_EVENT_WEIGHTS.copy() if _DEFAULT_EVENT_WEIGHTS is not None else np.zeros(9, dtype=np.float32)
+        # Normalize event weights so shaped returns are roughly in [-1, 1].
+        self.reward_scale = float(reward_cfg.get("reward_scale", 0.1))
+
         self._set_seed(int(train_cfg.get("seed", 42)))
 
     def run_iteration(self) -> dict:
@@ -89,6 +138,8 @@ class AlphaZeroTrainer:
             dirichlet_alpha=float(self.config["mcts"].get("dirichlet_alpha", 0.3)),
             dirichlet_epsilon=float(self.config["mcts"].get("dirichlet_epsilon", 0.25)),
             max_depth=self.max_turns,
+            use_adapter=self.use_adapter,
+            fpu_value=self.fpu_value,
         )
 
         for _ in range(episodes):
@@ -140,6 +191,120 @@ class AlphaZeroTrainer:
         return payload
 
     def _play_one_game(self, mcts: AlphaZeroMCTS) -> list[TrainingSample]:
+        if self.use_adapter:
+            return self._play_one_game_adapter(mcts)
+        return self._play_one_game_legacy(mcts)
+
+    def _play_one_game_adapter(self, mcts: AlphaZeroMCTS) -> list[TrainingSample]:
+        """Self-play using the shared planning adapter (V2 mode).
+
+        When reward shaping is enabled, each step's event-based reward is
+        collected and blended with the terminal win/loss outcome to produce
+        denser value targets.
+        """
+        adapter = SplendorPlanningAdapter()
+        trajectory: list[tuple[np.ndarray, np.ndarray, int]] = []
+        step_rewards: list[tuple[int, float]] = []  # (player_id, shaped_reward)
+
+        # Capture initial state snapshot for event detection.
+        prev_snapshots = {
+            pid: _capture_state_snapshot(adapter.state, pid)
+            for pid in range(2)
+        } if self.use_reward_shaping else {}
+
+        for turn in range(self.max_turns):
+            if adapter.is_terminal():
+                break
+
+            to_play = adapter.current_player
+            temperature = 1.0 if turn < self.temperature_cutoff else 1e-8
+            try:
+                search: SearchResult = mcts.search(adapter.state, temperature=temperature)
+            except RuntimeError as exc:
+                if "No legal actions available at root" in str(exc):
+                    break
+                raise
+
+            policy_target = np.zeros(self.policy_size, dtype=np.float32)
+            legal_indices = self.action_indexer.legal_indices(search.legal_actions)
+            for idx, prob in zip(legal_indices, search.policy, strict=False):
+                policy_target[int(idx)] += float(prob)
+
+            total_prob = float(np.sum(policy_target))
+            if total_prob > 0:
+                policy_target /= total_prob
+
+            encoded = adapter.encode_observation(player_id=to_play, turn_count=turn)
+            trajectory.append((encoded, policy_target, to_play))
+
+            action = search.selected_action
+            adapter.step(action)
+
+            # Detect events and compute shaped reward for this step.
+            if self.use_reward_shaping:
+                next_snap = _capture_state_snapshot(adapter.state, to_play)
+                events = _detect_events(prev_snapshots[to_play], action, next_snap)
+                shaped_r = _compute_event_reward(events, self.event_weights) * self.reward_scale
+                step_rewards.append((to_play, shaped_r))
+                # Update snapshots for both players.
+                for pid in range(2):
+                    prev_snapshots[pid] = _capture_state_snapshot(adapter.state, pid)
+            else:
+                step_rewards.append((to_play, 0.0))
+
+        # Compute value targets.
+        winner = adapter.winner_id()
+        samples: list[TrainingSample] = []
+
+        if self.use_reward_shaping and len(trajectory) > 0:
+            # Compute discounted shaped returns per player.
+            # shaped_returns[i] = sum of future discounted rewards for the
+            # player who moved at step i.
+            n = len(trajectory)
+            shaped_returns = np.zeros(n, dtype=np.float32)
+
+            # Backward pass: accumulate discounted rewards per player.
+            player_accum = {0: 0.0, 1: 0.0}
+            for i in range(n - 1, -1, -1):
+                pid = trajectory[i][2]  # player who moved at step i
+                r_i = step_rewards[i][1]
+                player_accum[pid] = r_i + self.shaping_discount * player_accum[pid]
+                shaped_returns[i] = player_accum[pid]
+
+            # Normalize shaped returns to roughly [-1, 1].
+            max_abs = max(1e-8, np.max(np.abs(shaped_returns)))
+            if max_abs > 1.0:
+                shaped_returns = shaped_returns / max_abs
+
+            for i, (state_tensor, policy_target, player_id) in enumerate(trajectory):
+                if winner is None:
+                    terminal_v = 0.0
+                elif winner == player_id:
+                    terminal_v = 1.0
+                else:
+                    terminal_v = -1.0
+
+                # Blend: (1 - weight) * terminal + weight * shaped_return
+                value_target = (
+                    (1.0 - self.shaping_weight) * terminal_v
+                    + self.shaping_weight * shaped_returns[i]
+                )
+                value_target = float(np.clip(value_target, -1.0, 1.0))
+                samples.append(TrainingSample(state_tensor, policy_target, value_target))
+        else:
+            for state_tensor, policy_target, player_id in trajectory:
+                if winner is None:
+                    value_target = 0.0
+                elif winner == player_id:
+                    value_target = 1.0
+                else:
+                    value_target = -1.0
+                samples.append(TrainingSample(state_tensor, policy_target, value_target))
+
+        return samples
+
+    def _play_one_game_legacy(self, mcts: AlphaZeroMCTS) -> list[TrainingSample]:
+        """Self-play using legacy instant-end terminal logic."""
         state = State()
         trajectory: list[tuple[np.ndarray, np.ndarray, int]] = []
 
@@ -149,8 +314,6 @@ class AlphaZeroTrainer:
             try:
                 search: SearchResult = mcts.search(state, temperature=temperature)
             except RuntimeError as exc:
-                # Splendor can occasionally reach states where no legal action exists.
-                # Treat this as an immediate terminal/truncated stop for the current self-play game.
                 if "No legal actions available at root" in str(exc):
                     break
                 raise

@@ -1,0 +1,29 @@
+{
+  "matchups": {
+    "lookahead_vs_ppo": {
+      "games": 5,
+      "wins": 4,
+      "draws": 0,
+      "losses": 1,
+      "win_rate": 0.8,
+      "ci_95_low": 0.3755,
+      "ci_95_high": 0.9638,
+      "avg_agent_pts": 13.2,
+      "avg_opp_pts": 11.0,
+      "sec_per_game": 2.22
+    },
+    "self_play": {
+      "games": 5,
+      "wins": 3,
+      "draws": 0,
+      "losses": 2,
+      "win_rate": 0.6,
+      "ci_95_low": 0.2307,
+      "ci_95_high": 0.8824,
+      "avg_agent_pts": 12.4,
+      "avg_opp_pts": 12.8,
+      "sec_per_game": 4.29
+    }
+  },
+  "model": "project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model.zip"
+}

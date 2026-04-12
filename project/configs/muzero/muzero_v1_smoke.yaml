@@ -1,0 +1,38 @@
+experiment:
+  name: "muzero_v1_smoke"
+  tags:
+    - "muzero"
+    - "v1"
+    - "smoke"
+
+network:
+  policy_size: 2048
+  latent_channels: 64
+  action_embed_dim: 16
+  repr_res_blocks: 2
+  dyn_res_blocks: 1
+
+mcts:
+  num_simulations: 10
+  c_puct: 1.5
+  dirichlet_alpha: 0.1
+  dirichlet_epsilon: 0.25
+  max_turns: 120
+  temperature_cutoff: 20
+  num_unroll_steps: 5
+  discount: 1.0
+
+training:
+  seed: 42
+  device: "cpu"
+  iterations: 3
+  episodes_per_iteration: 2
+  replay_buffer_size: 200
+  batch_size: 16
+  train_epochs: 1
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  checkpoint_every: 1
+  value_loss_weight: 0.25
+  reward_loss_weight: 1.0
+  policy_loss_weight: 1.0

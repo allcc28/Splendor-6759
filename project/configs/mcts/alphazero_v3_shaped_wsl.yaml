@@ -1,0 +1,52 @@
+experiment:
+  name: "alphazero_v3_shaped_wsl"
+  tags:
+    - "alphazero"
+    - "v3"
+    - "reward_shaping"
+    - "wsl"
+    - "cuda"
+
+network:
+  policy_size: 2048
+  trunk_channels: 128
+  num_res_blocks: 3
+
+mcts:
+  num_simulations: 50
+  c_puct: 1.5
+  dirichlet_alpha: 0.1
+  dirichlet_epsilon: 0.25
+  max_turns: 120
+  temperature_cutoff: 24
+  fpu_value: -0.1
+
+training:
+  seed: 42
+  device: "cuda"
+  iterations: 30
+  episodes_per_iteration: 4
+  replay_buffer_size: 3000
+  batch_size: 96
+  train_epochs: 3
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  checkpoint_every: 5
+  use_adapter: true
+
+reward_shaping:
+  enabled: true
+  discount: 0.99
+  weight: 0.3
+  reward_scale: 0.1
+  # Tuned event weights from E5 v6 candidate (best PPO run).
+  event_weights:
+    - 0.01   # take_gems
+    - 4.0    # buy_card
+    - 0.8    # reserve_card
+    - 5.0    # score_up
+    - 8.0    # reach_15
+    - 0.2    # scarcity_take
+    - 2.0    # block_reserve
+    - 8.0    # buy_reserved
+    - 2.5    # engine_spike

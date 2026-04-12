@@ -1,0 +1,128 @@
+{
+  "_meta": {
+    "model_path": "project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "model_path_abs": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "eval_tag": "v1_fixed_greedy",
+    "timestamp": "20260408_152145",
+    "games_per_opponent": 200,
+    "batches": 2,
+    "games_per_batch": 100,
+    "config_source": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/config.yaml",
+    "family": "event_based",
+    "event_shaping_enabled": true
+  },
+  "Random (wrapper)": {
+    "opponent": "Random (wrapper)",
+    "total_games": 200,
+    "total_wins": 191,
+    "total_losses": 0,
+    "total_draws": 9,
+    "win_rate_pooled": 95.5,
+    "win_rate_mean_across_batches": 95.5,
+    "win_rate_std_across_batches": 0.5,
+    "wilson_ci_95_lo": 91.67024063390322,
+    "wilson_ci_95_hi": 97.61477282752958,
+    "agent_score_mean": 15.684999999999999,
+    "opp_score_mean": 0.6950000000000001,
+    "n_batches": 2,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 96,
+        "losses": 0,
+        "draws": 4,
+        "win_rate": 96.0,
+        "agent_score_mean": 15.77,
+        "opp_score_mean": 0.72,
+        "game_length_mean": 35.53,
+        "reward_mean": 365.5436000575751
+      },
+      {
+        "wins": 95,
+        "losses": 0,
+        "draws": 5,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.6,
+        "opp_score_mean": 0.67,
+        "game_length_mean": 36.48,
+        "reward_mean": 367.5569000565588
+      }
+    ]
+  },
+  "RandomAgent": {
+    "opponent": "RandomAgent",
+    "total_games": 200,
+    "total_wins": 181,
+    "total_losses": 14,
+    "total_draws": 5,
+    "win_rate_pooled": 90.5,
+    "win_rate_mean_across_batches": 90.5,
+    "win_rate_std_across_batches": 0.5,
+    "wilson_ci_95_lo": 85.63973488560237,
+    "wilson_ci_95_hi": 93.83373863501365,
+    "agent_score_mean": 15.655000000000001,
+    "opp_score_mean": 6.595000000000001,
+    "n_batches": 2,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 91,
+        "losses": 7,
+        "draws": 2,
+        "win_rate": 91.0,
+        "agent_score_mean": 15.58,
+        "opp_score_mean": 6.69,
+        "game_length_mean": 36.29,
+        "reward_mean": 369.59620003926517
+      },
+      {
+        "wins": 90,
+        "losses": 7,
+        "draws": 3,
+        "win_rate": 90.0,
+        "agent_score_mean": 15.73,
+        "opp_score_mean": 6.5,
+        "game_length_mean": 36.17,
+        "reward_mean": 367.88520003276017
+      }
+    ]
+  },
+  "GreedyAgent": {
+    "opponent": "GreedyAgent",
+    "total_games": 200,
+    "total_wins": 159,
+    "total_losses": 38,
+    "total_draws": 3,
+    "win_rate_pooled": 79.5,
+    "win_rate_mean_across_batches": 79.5,
+    "win_rate_std_across_batches": 2.5,
+    "wilson_ci_95_lo": 73.37418048192545,
+    "wilson_ci_95_hi": 84.51390516889363,
+    "agent_score_mean": 15.08,
+    "opp_score_mean": 8.600000000000001,
+    "n_batches": 2,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 77,
+        "losses": 21,
+        "draws": 2,
+        "win_rate": 77.0,
+        "agent_score_mean": 14.8,
+        "opp_score_mean": 8.46,
+        "game_length_mean": 35.47,
+        "reward_mean": 333.403600057897
+      },
+      {
+        "wins": 82,
+        "losses": 17,
+        "draws": 1,
+        "win_rate": 82.0,
+        "agent_score_mean": 15.36,
+        "opp_score_mean": 8.74,
+        "game_length_mean": 35.85,
+        "reward_mean": 351.8528000533245
+      }
+    ]
+  }
+}

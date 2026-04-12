@@ -1,0 +1,368 @@
+{
+  "_meta": {
+    "model_path": "project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "model_path_abs": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model",
+    "eval_tag": "v1_full_restored",
+    "timestamp": "20260408_145513",
+    "games_per_opponent": 1000,
+    "batches": 10,
+    "games_per_batch": 100,
+    "config_source": "/mnt/c/Users/yehao/Documents/03Study/IFT6759/Splendor-6759/project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/config.yaml",
+    "family": "event_based",
+    "event_shaping_enabled": true
+  },
+  "Random (wrapper)": {
+    "opponent": "Random (wrapper)",
+    "total_games": 1000,
+    "total_wins": 961,
+    "total_losses": 1,
+    "total_draws": 38,
+    "win_rate_pooled": 96.1,
+    "win_rate_mean_across_batches": 96.1,
+    "win_rate_std_across_batches": 1.7,
+    "wilson_ci_95_lo": 94.7130398699436,
+    "wilson_ci_95_hi": 97.1341200803912,
+    "agent_score_mean": 15.745,
+    "opp_score_mean": 0.806,
+    "n_batches": 10,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 98,
+        "losses": 0,
+        "draws": 2,
+        "win_rate": 98.0,
+        "agent_score_mean": 16.02,
+        "opp_score_mean": 0.77,
+        "game_length_mean": 36.28,
+        "reward_mean": 376.57720005656324
+      },
+      {
+        "wins": 96,
+        "losses": 1,
+        "draws": 3,
+        "win_rate": 96.0,
+        "agent_score_mean": 15.59,
+        "opp_score_mean": 0.83,
+        "game_length_mean": 36.51,
+        "reward_mean": 373.5057000531279
+      },
+      {
+        "wins": 93,
+        "losses": 0,
+        "draws": 7,
+        "win_rate": 93.0,
+        "agent_score_mean": 15.19,
+        "opp_score_mean": 0.86,
+        "game_length_mean": 35.47,
+        "reward_mean": 356.01880005763167
+      },
+      {
+        "wins": 97,
+        "losses": 0,
+        "draws": 3,
+        "win_rate": 97.0,
+        "agent_score_mean": 15.93,
+        "opp_score_mean": 0.65,
+        "game_length_mean": 36.88,
+        "reward_mean": 378.97540005861885
+      },
+      {
+        "wins": 98,
+        "losses": 0,
+        "draws": 2,
+        "win_rate": 98.0,
+        "agent_score_mean": 16.11,
+        "opp_score_mean": 0.74,
+        "game_length_mean": 37.49,
+        "reward_mean": 381.64300004957016
+      },
+      {
+        "wins": 95,
+        "losses": 0,
+        "draws": 5,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.61,
+        "opp_score_mean": 0.89,
+        "game_length_mean": 35.95,
+        "reward_mean": 367.742700057093
+      },
+      {
+        "wins": 98,
+        "losses": 0,
+        "draws": 2,
+        "win_rate": 98.0,
+        "agent_score_mean": 15.92,
+        "opp_score_mean": 0.82,
+        "game_length_mean": 36.26,
+        "reward_mean": 376.7160000438451
+      },
+      {
+        "wins": 95,
+        "losses": 0,
+        "draws": 5,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.8,
+        "opp_score_mean": 0.75,
+        "game_length_mean": 35.89,
+        "reward_mean": 366.76860004679634
+      },
+      {
+        "wins": 94,
+        "losses": 0,
+        "draws": 6,
+        "win_rate": 94.0,
+        "agent_score_mean": 15.59,
+        "opp_score_mean": 0.96,
+        "game_length_mean": 36.26,
+        "reward_mean": 364.29190005088435
+      },
+      {
+        "wins": 97,
+        "losses": 0,
+        "draws": 3,
+        "win_rate": 97.0,
+        "agent_score_mean": 15.69,
+        "opp_score_mean": 0.79,
+        "game_length_mean": 36.09,
+        "reward_mean": 371.1458000556208
+      }
+    ]
+  },
+  "RandomAgent": {
+    "opponent": "RandomAgent",
+    "total_games": 1000,
+    "total_wins": 896,
+    "total_losses": 72,
+    "total_draws": 32,
+    "win_rate_pooled": 89.60000000000001,
+    "win_rate_mean_across_batches": 89.6,
+    "win_rate_std_across_batches": 1.9595917942265424,
+    "wilson_ci_95_lo": 87.55398308973383,
+    "wilson_ci_95_hi": 91.34292654222405,
+    "agent_score_mean": 15.433000000000002,
+    "opp_score_mean": 6.51,
+    "n_batches": 10,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 90,
+        "losses": 7,
+        "draws": 3,
+        "win_rate": 90.0,
+        "agent_score_mean": 15.4,
+        "opp_score_mean": 6.21,
+        "game_length_mean": 35.52,
+        "reward_mean": 360.64300004020777
+      },
+      {
+        "wins": 93,
+        "losses": 3,
+        "draws": 4,
+        "win_rate": 93.0,
+        "agent_score_mean": 15.71,
+        "opp_score_mean": 6.1,
+        "game_length_mean": 36.19,
+        "reward_mean": 367.86500003947464
+      },
+      {
+        "wins": 88,
+        "losses": 8,
+        "draws": 4,
+        "win_rate": 88.0,
+        "agent_score_mean": 15.13,
+        "opp_score_mean": 6.76,
+        "game_length_mean": 36.98,
+        "reward_mean": 359.5232000365808
+      },
+      {
+        "wins": 90,
+        "losses": 6,
+        "draws": 4,
+        "win_rate": 90.0,
+        "agent_score_mean": 15.6,
+        "opp_score_mean": 6.28,
+        "game_length_mean": 36.21,
+        "reward_mean": 365.80840002493017
+      },
+      {
+        "wins": 89,
+        "losses": 4,
+        "draws": 7,
+        "win_rate": 89.0,
+        "agent_score_mean": 14.75,
+        "opp_score_mean": 6.36,
+        "game_length_mean": 34.73,
+        "reward_mean": 344.30500004609587
+      },
+      {
+        "wins": 90,
+        "losses": 8,
+        "draws": 2,
+        "win_rate": 90.0,
+        "agent_score_mean": 15.36,
+        "opp_score_mean": 6.69,
+        "game_length_mean": 36.4,
+        "reward_mean": 368.96980004477876
+      },
+      {
+        "wins": 88,
+        "losses": 7,
+        "draws": 5,
+        "win_rate": 88.0,
+        "agent_score_mean": 15.4,
+        "opp_score_mean": 6.74,
+        "game_length_mean": 35.73,
+        "reward_mean": 365.01440003875194
+      },
+      {
+        "wins": 87,
+        "losses": 11,
+        "draws": 2,
+        "win_rate": 87.0,
+        "agent_score_mean": 15.45,
+        "opp_score_mean": 7.11,
+        "game_length_mean": 36.43,
+        "reward_mean": 365.41090004591564
+      },
+      {
+        "wins": 93,
+        "losses": 7,
+        "draws": 0,
+        "win_rate": 93.0,
+        "agent_score_mean": 16.07,
+        "opp_score_mean": 6.36,
+        "game_length_mean": 37.18,
+        "reward_mean": 379.54520003561214
+      },
+      {
+        "wins": 88,
+        "losses": 11,
+        "draws": 1,
+        "win_rate": 88.0,
+        "agent_score_mean": 15.46,
+        "opp_score_mean": 6.49,
+        "game_length_mean": 35.96,
+        "reward_mean": 360.4926000390671
+      }
+    ]
+  },
+  "GreedyAgent": {
+    "opponent": "GreedyAgent",
+    "total_games": 1000,
+    "total_wins": 958,
+    "total_losses": 4,
+    "total_draws": 38,
+    "win_rate_pooled": 95.8,
+    "win_rate_mean_across_batches": 95.8,
+    "win_rate_std_across_batches": 2.227105745132009,
+    "wilson_ci_95_lo": 94.37152767228902,
+    "wilson_ci_95_hi": 96.87792841719761,
+    "agent_score_mean": 15.794,
+    "opp_score_mean": 0.961,
+    "n_batches": 10,
+    "batch_size": 100,
+    "batch_results": [
+      {
+        "wins": 99,
+        "losses": 1,
+        "draws": 0,
+        "win_rate": 99.0,
+        "agent_score_mean": 16.49,
+        "opp_score_mean": 1.18,
+        "game_length_mean": 37.29,
+        "reward_mean": 382.7300000578253
+      },
+      {
+        "wins": 91,
+        "losses": 0,
+        "draws": 9,
+        "win_rate": 91.0,
+        "agent_score_mean": 14.84,
+        "opp_score_mean": 0.75,
+        "game_length_mean": 34.87,
+        "reward_mean": 348.0680000546283
+      },
+      {
+        "wins": 98,
+        "losses": 0,
+        "draws": 2,
+        "win_rate": 98.0,
+        "agent_score_mean": 15.92,
+        "opp_score_mean": 0.56,
+        "game_length_mean": 36.06,
+        "reward_mean": 367.9451000596344
+      },
+      {
+        "wins": 97,
+        "losses": 0,
+        "draws": 3,
+        "win_rate": 97.0,
+        "agent_score_mean": 15.91,
+        "opp_score_mean": 1.35,
+        "game_length_mean": 36.94,
+        "reward_mean": 375.3637000617064
+      },
+      {
+        "wins": 95,
+        "losses": 1,
+        "draws": 4,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.74,
+        "opp_score_mean": 0.96,
+        "game_length_mean": 36.47,
+        "reward_mean": 366.31900005637914
+      },
+      {
+        "wins": 96,
+        "losses": 0,
+        "draws": 4,
+        "win_rate": 96.0,
+        "agent_score_mean": 15.69,
+        "opp_score_mean": 1.01,
+        "game_length_mean": 36.75,
+        "reward_mean": 376.04220004957165
+      },
+      {
+        "wins": 95,
+        "losses": 0,
+        "draws": 5,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.84,
+        "opp_score_mean": 1.07,
+        "game_length_mean": 36.36,
+        "reward_mean": 364.8554000530824
+      },
+      {
+        "wins": 95,
+        "losses": 0,
+        "draws": 5,
+        "win_rate": 95.0,
+        "agent_score_mean": 15.42,
+        "opp_score_mean": 0.8,
+        "game_length_mean": 35.47,
+        "reward_mean": 360.65970005802126
+      },
+      {
+        "wins": 98,
+        "losses": 0,
+        "draws": 2,
+        "win_rate": 98.0,
+        "agent_score_mean": 16.02,
+        "opp_score_mean": 0.73,
+        "game_length_mean": 36.21,
+        "reward_mean": 374.1863000612989
+      },
+      {
+        "wins": 94,
+        "losses": 2,
+        "draws": 4,
+        "win_rate": 94.0,
+        "agent_score_mean": 16.07,
+        "opp_score_mean": 1.2,
+        "game_length_mean": 37.12,
+        "reward_mean": 372.2242000619962
+      }
+    ]
+  }
+}

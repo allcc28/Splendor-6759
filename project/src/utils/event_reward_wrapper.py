@@ -8,9 +8,17 @@ import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from ..reward.event_based_reward import DEFAULT_EVENT_WEIGHTS, EVENT_NAMES, compute_event_reward
-from .event_detector import capture_state_snapshot, detect_events
-from .state_vectorizer import SplendorStateVectorizer
+try:
+    from ..reward.event_based_reward import DEFAULT_EVENT_WEIGHTS, EVENT_NAMES, compute_event_reward
+except (ImportError, ValueError):
+    from reward.event_based_reward import DEFAULT_EVENT_WEIGHTS, EVENT_NAMES, compute_event_reward
+
+try:
+    from .event_detector import capture_state_snapshot, detect_events
+    from .state_vectorizer import SplendorStateVectorizer
+except (ImportError, ValueError):
+    from event_detector import capture_state_snapshot, detect_events
+    from state_vectorizer import SplendorStateVectorizer
 
 
 class EventRewardWrapper(gym.Wrapper):

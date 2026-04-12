@@ -1,10 +1,17 @@
-"""PUCT-based MCTS implementation for AlphaZero-style Splendor agents."""
+"""PUCT-based MCTS implementation for AlphaZero-style Splendor agents.
+
+Supports two terminal-handling modes:
+- Legacy: uses POINTS_TO_WIN instant-end (backward compat).
+- Adapter: uses SplendorPlanningAdapter with let_all_move round completion.
+
+Reference: cestpasphoto/alpha-zero-general MCTS.py for FPU pattern.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from math import sqrt
-from typing import Protocol, TYPE_CHECKING
+from typing import Optional, Protocol, TYPE_CHECKING
 
 import numpy as np
 
@@ -19,6 +26,7 @@ from nn.tensor_encoder import SplendorTensorEncoder
 
 if TYPE_CHECKING:
     from nn.policy_value_net import SplendorPolicyValueNet
+    from planning.adapter import SplendorPlanningAdapter
 
 
 def clone_state(state: State) -> State:
@@ -87,6 +95,8 @@ class MCTSNode:
     visit_count: int = 0
     value_sum: float = 0.0
     expanded: bool = False
+    # Optional planning adapter for let_all_move terminal semantics.
+    adapter: Optional["SplendorPlanningAdapter"] = field(default=None, repr=False)
 
     @property
     def q_value(self) -> float:
@@ -106,7 +116,17 @@ class SearchResult:
 
 
 class AlphaZeroMCTS:
-    """PUCT MCTS with root-noise and root-perspective backup values."""
+    """PUCT MCTS with root-noise and root-perspective backup values.
+
+    Supports two modes:
+    - Legacy (default): uses POINTS_TO_WIN instant-end terminal logic.
+    - Adapter: uses SplendorPlanningAdapter with let_all_move semantics.
+      Pass ``use_adapter=True`` to enable.
+
+    FPU (First Play Urgency): when ``fpu_value`` is set, unvisited children
+    use this pessimistic Q estimate instead of 0.0. Borrowed from
+    cestpasphoto/alpha-zero-general MCTS.py.
+    """
 
     def __init__(
         self,
@@ -116,6 +136,8 @@ class AlphaZeroMCTS:
         dirichlet_alpha: float = 0.3,
         dirichlet_epsilon: float = 0.25,
         max_depth: int = MAX_NUMBER_OF_MOVES,
+        use_adapter: bool = False,
+        fpu_value: Optional[float] = None,
     ) -> None:
         self.policy_value_fn = policy_value_fn
         self.num_simulations = num_simulations
@@ -123,10 +145,29 @@ class AlphaZeroMCTS:
         self.dirichlet_alpha = dirichlet_alpha
         self.dirichlet_epsilon = dirichlet_epsilon
         self.max_depth = max_depth
+        self.use_adapter = use_adapter
+        self.fpu_value = fpu_value  # None means use 0.0 (legacy behavior)
+
+    # ------------------------------------------------------------------
+    # Adapter-mode helpers
+    # ------------------------------------------------------------------
+
+    def _make_adapter(self, state: State) -> "SplendorPlanningAdapter":
+        from planning.adapter import SplendorPlanningAdapter
+        return SplendorPlanningAdapter(state=clone_state(state))
+
+    # ------------------------------------------------------------------
+    # Search
+    # ------------------------------------------------------------------
 
     def search(self, root_state: State, temperature: float = 1.0) -> SearchResult:
         root_player = root_state.active_player_id
-        root = MCTSNode(state=clone_state(root_state), to_play=root_player)
+        root_adapter = self._make_adapter(root_state) if self.use_adapter else None
+        root = MCTSNode(
+            state=root_adapter.state if root_adapter else clone_state(root_state),
+            to_play=root_player,
+            adapter=root_adapter,
+        )
 
         _ = self._expand(root, is_root=True)
         if len(root.legal_actions) == 0:
@@ -141,21 +182,32 @@ class AlphaZeroMCTS:
                 action_idx = self._select_child(node, root_player)
                 child = node.children.get(action_idx)
                 if child is None:
-                    next_state = clone_state(node.state)
-                    node.legal_actions[action_idx].execute(next_state)
-                    child = MCTSNode(
-                        state=next_state,
-                        to_play=next_state.active_player_id,
-                        parent=node,
-                        parent_action_idx=action_idx,
-                    )
+                    if self.use_adapter and node.adapter is not None:
+                        child_adapter = node.adapter.clone()
+                        child_adapter.step(node.legal_actions[action_idx])
+                        child = MCTSNode(
+                            state=child_adapter.state,
+                            to_play=child_adapter.current_player,
+                            parent=node,
+                            parent_action_idx=action_idx,
+                            adapter=child_adapter,
+                        )
+                    else:
+                        next_state = clone_state(node.state)
+                        node.legal_actions[action_idx].execute(next_state)
+                        child = MCTSNode(
+                            state=next_state,
+                            to_play=next_state.active_player_id,
+                            parent=node,
+                            parent_action_idx=action_idx,
+                        )
                     node.children[action_idx] = child
 
                 node = child
                 path.append(node)
                 depth += 1
 
-                if self._is_terminal(node.state):
+                if self._is_terminal(node):
                     break
 
             value_root = self._evaluate_leaf(node, root_player, depth)
@@ -176,7 +228,10 @@ class AlphaZeroMCTS:
         )
 
     def _expand(self, node: MCTSNode, is_root: bool) -> float:
-        node.legal_actions = generate_all_legal_actions(node.state)
+        if self.use_adapter and node.adapter is not None:
+            node.legal_actions = node.adapter.legal_actions
+        else:
+            node.legal_actions = generate_all_legal_actions(node.state)
         priors, value = self.policy_value_fn(node.state, node.to_play, node.legal_actions)
 
         if len(node.legal_actions) == 0:
@@ -196,10 +251,11 @@ class AlphaZeroMCTS:
         best_score = -np.inf
         best_idx = 0
         parent_visits = max(1, node.visit_count)
+        fpu = self.fpu_value if self.fpu_value is not None else 0.0
 
         for idx in range(len(node.legal_actions)):
             child = node.children.get(idx)
-            q_value = child.q_value if child is not None else 0.0
+            q_value = child.q_value if child is not None else fpu
             if node.to_play != root_player:
                 q_value = -q_value
 
@@ -214,8 +270,8 @@ class AlphaZeroMCTS:
         return best_idx
 
     def _evaluate_leaf(self, node: MCTSNode, root_player: int, depth: int) -> float:
-        if self._is_terminal(node.state) or depth >= self.max_depth:
-            return self._terminal_value_from_root(node.state, root_player)
+        if self._is_terminal(node) or depth >= self.max_depth:
+            return self._terminal_value_from_root(node, root_player)
 
         value_current = self._expand(node, is_root=False)
         if node.to_play == root_player:
@@ -242,12 +298,16 @@ class AlphaZeroMCTS:
             return np.ones_like(visit_counts, dtype=np.float32) / len(visit_counts)
         return (scaled / denom).astype(np.float32)
 
-    def _is_terminal(self, state: State) -> bool:
-        points = [hand.number_of_my_points() for hand in state.list_of_players_hands]
+    def _is_terminal(self, node: MCTSNode) -> bool:
+        if self.use_adapter and node.adapter is not None:
+            return node.adapter.is_terminal()
+        points = [hand.number_of_my_points() for hand in node.state.list_of_players_hands]
         return max(points) >= POINTS_TO_WIN
 
-    def _terminal_value_from_root(self, state: State, root_player: int) -> float:
-        points = [hand.number_of_my_points() for hand in state.list_of_players_hands]
+    def _terminal_value_from_root(self, node: MCTSNode, root_player: int) -> float:
+        if self.use_adapter and node.adapter is not None:
+            return node.adapter.terminal_value(root_player)
+        points = [hand.number_of_my_points() for hand in node.state.list_of_players_hands]
         root_points = points[root_player]
         opp_points = points[1 - root_player]
 

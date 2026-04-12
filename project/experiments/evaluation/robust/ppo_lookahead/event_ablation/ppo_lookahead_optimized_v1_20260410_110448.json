@@ -1,0 +1,36 @@
+{
+  "agent": "PPOLookahead",
+  "config": {
+    "depth": 1,
+    "top_k": 15,
+    "alpha": 0.3,
+    "beta": 0.5,
+    "gamma": 0.2,
+    "event_weights": "0,1.0,0,0,25.0,0.25,0.5,0.4,2.0",
+    "ppo_model": "project/logs/ppo_event_based/maskable_ppo_event_v1_20260309_110155/eval/best_model.zip"
+  },
+  "vs_random": {
+    "games": 500,
+    "wins": 483,
+    "draws": 16,
+    "losses": 1,
+    "win_rate": 0.966,
+    "ci_95_low": 0.9462,
+    "ci_95_high": 0.9787,
+    "avg_agent_pts": 14.94,
+    "avg_opp_pts": 0.64,
+    "sec_per_game": 2.7
+  },
+  "vs_greedy": {
+    "games": 500,
+    "wins": 449,
+    "draws": 11,
+    "losses": 40,
+    "win_rate": 0.898,
+    "ci_95_low": 0.8684,
+    "ci_95_high": 0.9216,
+    "avg_agent_pts": 14.86,
+    "avg_opp_pts": 7.18,
+    "sec_per_game": 8.37
+  }
+}

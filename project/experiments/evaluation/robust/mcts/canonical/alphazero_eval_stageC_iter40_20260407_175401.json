@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "timestamp": "2026-04-07T17:54:01",
+    "games_per_matchup": 100,
+    "seed": 42,
+    "max_turns": 200,
+    "alpha_checkpoint": "project/logs/alphazero_stageC_wsl_20260331_231447/alphazero_iter_0040.pt",
+    "alpha_config_source": "project/logs/alphazero_stageC_wsl_20260331_231447/config.yaml",
+    "alpha_device": "cuda",
+    "ppo_model": null,
+    "ppo_model_type": null,
+    "bucket": "canonical",
+    "tag": "stageC_iter40"
+  },
+  "results": [
+    {
+      "path": "local-duel",
+      "games": 100,
+      "wins": 30,
+      "losses": 69,
+      "draws": 1,
+      "win_rate": 30.0,
+      "win_rate_ci95": [
+        21.89488529493276,
+        39.58485463334666
+      ],
+      "agent_avg_points": 5.82,
+      "opponent_avg_points": 11.67,
+      "wall_time_sec": 4305.14950466156,
+      "sec_per_game": 43.0514950466156,
+      "matchup": "AlphaZeroMCTS vs random_uniform_on_types"
+    },
+    {
+      "path": "local-duel",
+      "games": 100,
+      "wins": 5,
+      "losses": 95,
+      "draws": 0,
+      "win_rate": 5.0,
+      "win_rate_ci95": [
+        2.154367915436796,
+        11.175046923191912
+      ],
+      "agent_avg_points": 0.95,
+      "opponent_avg_points": 14.7,
+      "wall_time_sec": 2757.704783678055,
+      "sec_per_game": 27.577047836780547,
+      "matchup": "AlphaZeroMCTS vs greedy_value"
+    }
+  ]
+}
