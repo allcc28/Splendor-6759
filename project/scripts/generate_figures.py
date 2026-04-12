@@ -47,10 +47,13 @@ for bar, val in zip(bars, win_rates):
     ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1.5, f'{val}%',
             ha='center', va='bottom', fontweight='bold', fontsize=12)
 
-# Add arrows showing progression
-ax.annotate('', xy=(3.15, 85), xytext=(2.15, 80),
-            arrowprops=dict(arrowstyle='->', color=COLORS['gold'], lw=2.5))
-ax.text(2.65, 83, '+14pp', fontsize=10, ha='center', color=COLORS['gold'], fontweight='bold')
+# Add curved arrow + label for +14pp
+ax.annotate('+14pp', xy=(4, 93), xytext=(2.8, 95),
+            fontsize=13, fontweight='bold', color=COLORS['gold'],
+            ha='center', va='center',
+            arrowprops=dict(arrowstyle='->', color=COLORS['gold'], lw=2.5,
+                            connectionstyle='arc3,rad=-0.15'),
+            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', edgecolor=COLORS['gold'], alpha=0.9))
 
 plt.tight_layout()
 plt.savefig(f'{OUT}/01_ppo_progression.png', bbox_inches='tight')
@@ -60,21 +63,22 @@ print("1. PPO progression done")
 # ============================================================
 # 2. AlphaZero Failure Table (as figure)
 # ============================================================
-fig, ax = plt.subplots(figsize=(8, 3.5))
+fig, ax = plt.subplots(figsize=(12, 3.5))
 ax.axis('off')
 
 data = [
     ['AlphaZero V2 (Pure, 20 iter)', '25%', '0%', 'MCTS too shallow'],
-    ['AlphaZero V3 (Shaped, 30 iter)', '34%', '4%', 'Reward shaping not enough'],
+    ['AlphaZero V3 (Shaped, 30 iter)', '34%', '4%', 'Reward shaping insufficient'],
     ['AlphaZero V4 (Warm-start, 60 iter)', '6%', '2%', 'PPO distillation hurt'],
     ['AlphaZero V3-long (60 iter)', '10%', '0%', 'More training did not help'],
 ]
 cols = ['Variant', 'vs Random', 'vs Greedy', 'Diagnosis']
 
-table = ax.table(cellText=data, colLabels=cols, loc='center', cellLoc='center')
+table = ax.table(cellText=data, colLabels=cols, loc='center', cellLoc='center',
+                 colWidths=[0.32, 0.15, 0.15, 0.32])
 table.auto_set_font_size(False)
-table.set_fontsize(11)
-table.scale(1.2, 1.8)
+table.set_fontsize(12)
+table.scale(1.0, 2.0)
 
 # Header styling
 for j in range(len(cols)):
