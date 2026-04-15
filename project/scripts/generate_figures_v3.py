@@ -114,10 +114,6 @@ ax.annotate('Most critical', xy=(-5.5, 0), xytext=(-6.5, 1.5),
             arrowprops=dict(arrowstyle='->', color=PRIMARY, lw=1.5),
             bbox=dict(boxstyle='round,pad=0.2', facecolor=LIGHT_BLUE, edgecolor=PRIMARY))
 
-ax.annotate('Noise\n(removing helps)', xy=(1.1, 8), xytext=(1.5, 6.5),
-            fontsize=9, fontweight='bold', color=GRAY,
-            arrowprops=dict(arrowstyle='->', color=GRAY, lw=1.5),
-            bbox=dict(boxstyle='round,pad=0.2', facecolor=LIGHT_GRAY, edgecolor=GRAY))
 
 bottom_box(fig, 'buy_card is the MVP (-5.5pp)  |  reserve_card is noise (+1.1pp when removed)')
 plt.tight_layout(rect=[0, 0.07, 1, 1])
@@ -236,12 +232,12 @@ fig, ax = plt.subplots(figsize=(10, 3.2))
 ax.axis('off')
 
 data = [
-    ['V3 Shaped (30 iter, 50 sims)', '34.0%', '4.0%'],
-    ['V4 Warm-start (60 iter)', '6.0%', '2.0%'],
-    ['V3-long (60 iter)', '10.0%', '0.0%'],
-    ['Stage C (40 iter, 50 sims)', '30.0%', '5.0%'],
+    ['+ Event reward shaping', '34.0%', '4.0%'],
+    ['+ PPO policy distillation', '6.0%', '2.0%'],
+    ['+ Extended self-play (2x iterations)', '10.0%', '0.0%'],
+    ['+ All combined (best effort)', '30.0%', '5.0%'],
 ]
-cols = ['AlphaZero Variant', 'vs Random', 'vs Greedy']
+cols = ['What we tried', 'vs Random', 'vs Greedy']
 
 table = ax.table(cellText=data, colLabels=cols, loc='center', cellLoc='center',
                  colWidths=[0.45, 0.20, 0.20])
@@ -303,7 +299,7 @@ for j in range(len(cols)):
     table[6, j].set_facecolor(LIGHT_BLUE)
 
 fig.suptitle('Final Agent Comparison (n=1000 games each)', fontsize=14, fontweight='bold', color=DARK, y=0.98)
-bottom_box(fig, '35+ experiments  |  30,000+ evaluation games  |  111 human-vs-AI battles')
+bottom_box(fig, '80+ experiment runs  |  70,000+ evaluation games  |  100+ human-vs-AI battles')
 plt.subplots_adjust(top=0.90, bottom=0.12)
 plt.savefig(f'{OUT}/08_final_summary.png', bbox_inches='tight')
 plt.close()
