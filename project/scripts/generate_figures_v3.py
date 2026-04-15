@@ -164,8 +164,8 @@ curriculum = [73.7, 91.5]
 x = np.arange(len(labels))
 w = 0.28
 
-bars1 = ax.bar(x - w/2, v1, w, label='Original V1 (trained vs Random)', color=PRIMARY, edgecolor='white', linewidth=1.5)
-bars2 = ax.bar(x + w/2, curriculum, w, label='Curriculum (trained vs Greedy)', color=SECONDARY, edgecolor='white', linewidth=1.5)
+bars1 = ax.bar(x - w/2, v1, w, label='Event-based PPO', color=PRIMARY, edgecolor='white', linewidth=1.5)
+bars2 = ax.bar(x + w/2, curriculum, w, label='Curriculum PPO', color=SECONDARY, edgecolor='white', linewidth=1.5)
 
 ax.set_ylabel('Win Rate vs Greedy (%)', fontsize=12, color=DARK)
 ax.set_xticks(x)
