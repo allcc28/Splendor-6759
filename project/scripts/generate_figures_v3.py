@@ -179,9 +179,9 @@ for bars in [bars1, bars2]:
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
                 f'{bar.get_height()}%', ha='center', va='bottom', fontweight='bold', fontsize=12, color=DARK)
 
-ax.annotate('Identical!', xy=(1.14, 91.7), fontsize=12, fontweight='bold', color=PRIMARY,
+ax.annotate('Identical!', xy=(1.3, 92), fontsize=12, fontweight='bold', color=PRIMARY,
             bbox=dict(boxstyle='round,pad=0.3', facecolor=LIGHT_BLUE, edgecolor=PRIMARY))
-ax.annotate('-4.3pp', xy=(0.14, 75.5), fontsize=11, fontweight='bold', color=CHARCOAL,
+ax.annotate('-4.3pp', xy=(0.3, 71), fontsize=11, fontweight='bold', color=CHARCOAL,
             bbox=dict(boxstyle='round,pad=0.2', facecolor=LIGHT_GRAY, edgecolor=CHARCOAL))
 
 bottom_box(fig, 'PPO is just a candidate filter. The evaluation function does the real work.')
