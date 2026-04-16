@@ -74,7 +74,7 @@ ax.annotate('Useless', xy=(2, 92.8), xytext=(2.8, 96),
             arrowprops=dict(arrowstyle='->', color=GRAY, lw=1.5),
             bbox=dict(boxstyle='round,pad=0.2', facecolor=LIGHT_GRAY, edgecolor=GRAY))
 
-bottom_box(fig, 'Event reward is the core (-16pp without it)  |  PPO value has no effect  |  Event alone matches full model')
+bottom_box(fig, 'Event reward is the core (-16pp)  |  PPO value has no effect  |  Sweet spot: K=15~30 (K=50 drops to 87.3%)')
 plt.tight_layout(rect=[0, 0.07, 1, 1])
 plt.savefig(f'{OUT}/04_component_ablation.png', bbox_inches='tight')
 plt.close()
